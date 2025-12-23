@@ -6,7 +6,6 @@ import (
 	"latihan_cloud8/middleware"
 	"latihan_cloud8/store"
 	"latihan_cloud8/utils"
-	"log"
 	"net/http"
 	"time"
 )
@@ -48,21 +47,12 @@ func render(w http.ResponseWriter, r *http.Request, tmplName string, title strin
 		"ActivePage": activePage,
 	}
 
-	// Parse layout AND the specific content template
-	tmpl, err := template.ParseFiles("templates/layout.html", "templates/"+tmplName)
-	if err != nil {
-		log.Println("Template Error:", err)
-		http.Error(w, "Template Error: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	err = tmpl.ExecuteTemplate(w, "layout", data)
-	if err != nil {
-		log.Println("Execute Error:", err)
-	}
+	// Use RenderTemplate for standalone files
+	utils.RenderTemplate(w, tmplName, data)
 }
 
 func (h *PageHandler) ShowDashboard(w http.ResponseWriter, r *http.Request) {
+	// Custom render to include user data
 	v := r.Context().Value(middleware.UserCtxKey)
 	if v == nil {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -71,7 +61,6 @@ func (h *PageHandler) ShowDashboard(w http.ResponseWriter, r *http.Request) {
 	claims := v.(*utils.Claims)
 
 	// Get Real-time Date
-	// Format: "Senin, 02 Januari 2006"
 	now := time.Now()
 	days := []string{"Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"}
 	months := []string{"", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"}
@@ -97,35 +86,16 @@ func (h *PageHandler) ShowDashboard(w http.ResponseWriter, r *http.Request) {
 		data["TotalBooks"] = booksCount
 		data["ActiveLoans"] = activeLoansCount
 	} else {
-		myActiveLoans, _ := h.Store.CountActiveLoansByUser(claims.Username) // Assuming username is ID, or need to fetch ID?
-		// Wait, claims.Username might not be the UUID ID. Let's check logic.
-		// The store uses UUID for IDs. claims has Username.
-		// I need to fetch the User to get the ID if CreateUser uses UUID.
-		// Let's check CreateUser in store.
-		// CreateUser: id := uuid.NewString().
-		// So checking by Username in CountActiveLoansByUser won't work if it expects UUID.
-		// But wait, the handler ShowProfile fetches User to get details.
-
-		// Let's check `CountActiveLoansByUser` implementation I just wrote.
-		// `SELECT COUNT(*) FROM loans WHERE user_id = ? ...`
-		// `loans` table `user_id` refers to `users(id)`.
-		// So I need the UUID.
-
 		user, err := h.Store.GetByUsername(claims.Username)
+		myActiveLoans := 0
 		if err == nil {
 			myActiveLoans, _ = h.Store.CountActiveLoansByUser(user.ID)
 		}
 		data["MyActiveLoans"] = myActiveLoans
-		data["Status"] = "Aktif" // Just static for now as per requirement
+		data["Status"] = "Aktif"
 	}
 
-	tmpl, err := template.ParseFiles("templates/layout.html", "templates/dashboard.html")
-	if err != nil {
-		log.Println("Template Error:", err)
-		http.Error(w, "Template Error", http.StatusInternalServerError)
-		return
-	}
-	tmpl.ExecuteTemplate(w, "layout", data)
+	utils.RenderTemplate(w, "dashboard.html", data)
 }
 
 func (h *PageHandler) ShowAdminBooks(w http.ResponseWriter, r *http.Request) {
@@ -180,13 +150,7 @@ func (h *PageHandler) ShowProfile(w http.ResponseWriter, r *http.Request) {
 		"User":       user,
 	}
 
-	tmpl, err := template.ParseFiles("templates/layout.html", "templates/profile.html")
-	if err != nil {
-		log.Println("Template Error:", err)
-		http.Error(w, "Template Error", http.StatusInternalServerError)
-		return
-	}
-	tmpl.ExecuteTemplate(w, "layout", data)
+	utils.RenderTemplate(w, "profile.html", data)
 }
 
 func (h *PageHandler) ShowAdminReports(w http.ResponseWriter, r *http.Request) {

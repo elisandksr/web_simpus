@@ -522,6 +522,47 @@ func (s *MySQLStore) GetAllLoans() ([]models.Loan, error) {
 	return loans, nil
 }
 
+func (s *MySQLStore) GetLoansFiltered(startDate, endDate time.Time) ([]models.Loan, error) {
+	// Join with books and users for nice display
+	query := `
+		SELECT l.id, l.user_id, l.book_id, l.loan_date, l.due_date, l.return_date, l.status, l.fine,
+		       b.title, u.username
+		FROM loans l
+		JOIN books b ON l.book_id = b.id
+		JOIN users u ON l.user_id = u.id
+		WHERE l.loan_date >= ? AND l.loan_date <= ?
+		ORDER BY l.loan_date DESC
+	`
+	rows, err := s.db.Query(query, startDate, endDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var loans []models.Loan
+	for rows.Next() {
+		var l models.Loan
+		var returnDate sql.NullTime
+		var bookTitle, username string
+
+		err := rows.Scan(&l.ID, &l.UserID, &l.BookID, &l.LoanDate, &l.DueDate, &returnDate, &l.Status, &l.Fine, &bookTitle, &username)
+		if err != nil {
+			return nil, err
+		}
+
+		if returnDate.Valid {
+			t := returnDate.Time
+			l.ReturnDate = &t
+		}
+
+		l.Book = &models.Book{ID: l.BookID, Title: bookTitle}
+		l.User = &models.User{ID: l.UserID, Username: username}
+
+		loans = append(loans, l)
+	}
+	return loans, nil
+}
+
 func (s *MySQLStore) GetLoansByUserID(userID string) ([]models.Loan, error) {
 	query := `
 		SELECT l.id, l.user_id, l.book_id, l.loan_date, l.due_date, l.return_date, l.status, l.fine,

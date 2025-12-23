@@ -111,7 +111,7 @@ func (h *NotificationHandler) ShowNotificationsPage(w http.ResponseWriter, r *ht
 	}
 	claims := v.(*utils.Claims)
 
-	utils.RenderWithLayout(w, "notifications.html", map[string]interface{}{
+	utils.RenderTemplate(w, "notifications.html", map[string]interface{}{
 		"Title":      "Notifikasi",
 		"ActivePage": "notifications",
 		"Username":   claims.Username,

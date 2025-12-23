@@ -8,6 +8,7 @@ import (
 	"latihan_cloud8/store"
 	"latihan_cloud8/utils"
 	"net/http"
+	"time"
 )
 
 type LoanHandler struct {
@@ -145,7 +146,27 @@ func (h *LoanHandler) ListLoans(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	if claims.Role == "admin" {
-		loans, err = h.Store.GetAllLoans()
+		startDateStr := r.URL.Query().Get("start_date")
+		endDateStr := r.URL.Query().Get("end_date")
+
+		if startDateStr != "" && endDateStr != "" {
+			layout := "2006-01-02"
+			start, err1 := time.Parse(layout, startDateStr)
+			end, err2 := time.Parse(layout, endDateStr)
+
+			if err1 == nil && err2 == nil {
+				// Adjust end date to end of day
+				end = end.Add(23*time.Hour + 59*time.Minute + 59*time.Second)
+				loans, err = h.Store.GetLoansFiltered(start, end)
+			} else {
+				// Fallback or bad request? Let's just return all or error.
+				// For robustness, let's fallback to current month or just error.
+				// Let's fallback to all loans but maybe invalid date format.
+				loans, err = h.Store.GetAllLoans()
+			}
+		} else {
+			loans, err = h.Store.GetAllLoans()
+		}
 	} else {
 		// Get User ID
 		user, uErr := h.Store.GetByUsername(claims.Username)

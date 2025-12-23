@@ -1,93 +1,624 @@
-{{define "content"}}
-<div class="card">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <div>
-            <h3 style="margin:0" id="page-title">Peminjaman Saya</h3>
-            <p style="color:var(--text-light)" id="page-desc">Daftar buku yang sedang Anda pinjam.</p>
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} | SIMPUS</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            /* Palette: Solid Blue & Bright Accents */
+            --primary: #0D6EFD;
+            /* Standard Solid Blue (Bootstrap-ish) */
+            --primary-dark: #0a58ca;
+            /* Darker shade for hover */
+            --secondary: #6c757d;
+            /* Solid Grey for secondary text */
+            --accent: #FFC107;
+            /* Bright Amber for flair */
+            --success: #198754;
+            /* Solid Green */
+            --danger: #DC3545;
+            /* Solid Red */
+
+            --background: #F8F9FA;
+            /* Light Gray/White Background */
+            --surface: #FFFFFF;
+            /* Pure White */
+
+            --text-main: #212529;
+            /* Near Black */
+            --text-secondary: #6c757d;
+            --text-sidebar: #FFFFFF;
+
+            --sidebar-width: 260px;
+            --header-height: 60px;
+
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            /* Softer, smaller shadow */
+            --radius: 8px;
+            /* Tighter radius */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            outline: none;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--background);
+            /* Removed gradient background for a cleaner "Solid" look */
+            min-height: 100vh;
+            display: flex;
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        /* SIDEBAR (Vibrant & Neat) */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+            color: var(--text-sidebar);
+        }
+
+        .sidebar-brand {
+            height: 70px;
+            padding: 0 1.5rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-menu {
+            flex: 1;
+            padding: 1.5rem 1rem;
+            list-style: none;
+            overflow-y: auto;
+        }
+
+        .menu-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 700;
+            margin: 1.2rem 0.8rem 0.5rem;
+            letter-spacing: 1px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.85rem 1rem;
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            border: 1px solid transparent;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            transform: translateX(5px);
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-link.active {
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            font-weight: 700;
+        }
+
+        .nav-link i {
+            width: 24px;
+            font-size: 1.1rem;
+            margin-right: 12px;
+            text-align: center;
+        }
+
+        .user-panel {
+            margin: 1rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .user-avatar {
+            width: 42px;
+            height: 42px;
+            background: white;
+            color: var(--primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* MAIN CONTENT */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 2rem;
+            /* Reduced padding */
+            min-height: 100vh;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+            height: auto;
+        }
+
+        .page-title h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--secondary);
+            letter-spacing: -0.5px;
+        }
+
+        .page-title p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-top: 5px;
+        }
+
+        /* CARDS */
+        .card {
+            background: var(--surface);
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+            border: none;
+        }
+
+        /* BUTTONS */
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 4px rgba(13, 110, 253, 0.2);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        /* INPUTS */
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-family: inherit;
+            background: white;
+            color: var(--text-main);
+            transition: 0.2s;
+            font-weight: 400;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            background: white;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+        }
+
+        /* TABLES */
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            border-bottom: 2px solid #e9ecef;
+            background: white;
+        }
+
+        td {
+            padding: 12px;
+            vertical-align: middle;
+            border-bottom: 1px solid #e9ecef;
+            color: var(--text-main);
+            font-weight: 400;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: #f8f9fa;
+        }
+
+        /* BADGES */
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .bg-primary {
+            background: #cfe2ff;
+            color: #084298;
+        }
+
+        .bg-success {
+            background: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .bg-warning {
+            background: #fff3cd;
+            color: #664d03;
+        }
+
+        .bg-danger {
+            background: #f8d7da;
+            color: #842029;
+        }
+
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(2, 62, 138, 0.4);
+            /* Blue-ish tint overlay */
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .modal.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: white;
+            width: 500px;
+            padding: 2.5rem;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            transform: scale(0.95);
+            transition: transform 0.2s;
+        }
+
+        .modal.show .modal-content {
+            transform: scale(1);
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="sidebar">
+        <div class="sidebar-brand">
+            <i class="fas fa-book-reader"></i> SIMPUS
+        </div>
+
+        <ul class="sidebar-menu">
+            <div class="menu-label">Main Menu</div>
+            <li><a href="/dashboard" class="nav-link {{if eq .ActivePage " dashboard"}}active{{end}}"><i
+                        class="fas fa-grid-2"></i> Dashboard</a></li>
+
+            {{if eq .Role "admin"}}
+            <div class="menu-label">Administration</div>
+            <li><a href="/admin/books" class="nav-link {{if eq .ActivePage " books"}}active{{end}}"><i
+                        class="fas fa-book"></i> Data Buku</a></li>
+            <li><a href="/admin/members" class="nav-link {{if eq .ActivePage " members"}}active{{end}}"><i
+                        class="fas fa-users"></i> Data Anggota</a></li>
+            <li><a href="/admin/transactions" class="nav-link {{if eq .ActivePage " transactions"}}active{{end}}"><i
+                        class="fas fa-exchange-alt"></i> Transaksi</a></li>
+            <li><a href="/admin/reports" class="nav-link {{if eq .ActivePage " reports"}}active{{end}}"><i
+                        class="fas fa-chart-line"></i> Laporan</a></li>
+            {{else}}
+            <div class="menu-label">Library</div>
+            <li><a href="/catalog" class="nav-link {{if eq .ActivePage " catalog"}}active{{end}}"><i
+                        class="fas fa-search"></i> Katalog Buku</a></li>
+            <li><a href="/loans?view=active" class="nav-link {{if eq .ActivePage " loans"}}active{{end}}"><i
+                        class="fas fa-clock"></i> Peminjaman</a></li>
+            <li><a href="/loans?view=history" class="nav-link"><i class="fas fa-history"></i> Riwayat Peminjaman</a>
+            </li>
+            {{end}}
+
+            <div class="menu-label">User</div>
+            <li><a href="/profile" class="nav-link {{if eq .ActivePage " profile"}}active{{end}}"><i
+                        class="fas fa-user-circle"></i> Profil</a></li>
+        </ul>
+
+        <div class="user-panel">
+            <div class="user-avatar">{{slice .Username 0 1}}</div>
+            <div style="flex:1">
+                <div style="font-weight:600">{{.Username}}</div>
+                <div style="font-size:0.8rem; opacity:0.7">{{.Role}}</div>
+            </div>
+            <a href="#" onclick="logout()" style="color:rgba(255,255,255,0.7)"><i class="fas fa-sign-out-alt"></i></a>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <header class="header">
+            <div class="page-title">
+                <h1>{{.Title}}</h1>
+                <p>Selamat Datang di Sistem Manajemen Perpustakaan Terpadu</p>
+            </div>
+            {{if ne .Role "admin"}}
+            <div style="display:flex; gap:15px; position:relative;" class="notif-container">
+                <button class="btn" style="background:white; position:relative;" onclick="toggleNotif()">
+                    <i class="far fa-bell" style="font-size:1.2rem;"></i>
+                    <span id="notif-badge"
+                        style="position:absolute; top:-5px; right:-5px; background:red; color:white; font-size:0.7rem; border-radius:50%; width:18px; height:18px; display:none; align-items:center; justify-content:center;">0</span>
+                </button>
+                <div id="notif-dropdown"
+                    style="display:none; position:absolute; right:0; top:50px; width:300px; background:white; border-radius:15px; box-shadow:0 10px 40px rgba(0,0,0,0.1); z-index:1000; overflow:hidden;">
+                    <div style="padding:15px; border-bottom:1px solid #eee; font-weight:600;">Notifikasi</div>
+                    <div id="notif-list" style="max-height:300px; overflow-y:auto;">
+                        <!-- JS injected -->
+                    </div>
+                    <a href="/notifications"
+                        style="display:block; padding:10px; text-align:center; background:#f8f9fa; color:var(--primary); font-weight:600; text-decoration:none; font-size:0.8rem;">Lihat
+                        Semua</a>
+                </div>
+            </div>
+            {{end}}
+        </header>
+
+        <div id="content-area">
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <div>
+                        <h3 style="margin:0">
+                            <script>
+                                const q = new URLSearchParams(window.location.search);
+                                document.write(q.get('view') === 'history' ? 'Riwayat Peminjaman' : 'Peminjaman Aktif');
+                            </script>
+                        </h3>
+                        <p style="color:var(--text-light)">Daftar buku yang Anda pinjam.</p>
+                    </div>
+                </div>
+
+                <div style="overflow-x:auto;">
+                    <table id="loanTable" style="width:100%; border-collapse:separate; border-spacing:0;">
+                        <thead>
+                            <tr
+                                style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color:white; text-align:left;">
+                                <th style="padding:15px; border-top-left-radius:12px;">Buku</th>
+                                <th style="padding:15px;">Tanggal Pinjam</th>
+                                <th style="padding:15px;">Jatuh Tempo</th>
+                                <th style="padding:15px;">Status</th>
+                                <th style="padding:15px; border-top-right-radius:12px;">Denda</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="card-body" style="padding:0;">
-        <table style="width:100%; border-collapse:separate; border-spacing:0;">
-            <thead>
-                <tr
-                    style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color:white; text-align:left;">
-                    <th style="padding:15px; border-top-left-radius:12px;">Buku</th>
-                    <th style="padding:15px;">Tgl Pinjam</th>
-                    <th style="padding:15px;">Jatuh Tempo</th>
-                    <th style="padding:15px;">Status</th>
-                    <th style="padding:15px; border-top-right-radius:12px;">Denda</th>
-                </tr>
-            </thead>
-            <tbody id="loansBody"></tbody>
-        </table>
-        <div id="loading" style="text-align:center; padding:20px; color:#888;">Memuat data...</div>
-        <div id="empty-msg" style="display:none; text-align:center; padding:20px; color:#888;">Tidak ada data
-            peminjaman.</div>
-    </div>
-</div>
-{{end}}
-
-{{define "scripts"}}
-<script>
-    // Get view param
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentView = urlParams.get('view') || 'active';
-
-    // Set Title
-    const titleEl = document.getElementById('page-title');
-    const descEl = document.getElementById('page-desc');
-
-    if (currentView === 'history') {
-        titleEl.innerText = 'Riwayat Peminjaman';
-        descEl.innerText = 'Riwayat lengkap seluruh peminjaman buku Anda.';
-    } else {
-        titleEl.innerText = 'Peminjaman Saya';
-        descEl.innerText = 'Daftar buku yang sedang Anda pinjam saat ini.';
-    }
-
-    loadLoans();
-
-    async function loadLoans() {
-        const tbody = document.getElementById('loansBody');
-        const loading = document.getElementById('loading');
-        const emptyMsg = document.getElementById('empty-msg');
-
-        tbody.innerHTML = '';
-        loading.style.display = 'block';
-        emptyMsg.style.display = 'none';
-
-        try {
-            const res = await fetch('/api/loans', { headers: { 'Authorization': `Bearer ${token}` } });
-            let loans = await res.json();
-
-            // Filter client-side
-            if (currentView === 'active') {
-                loans = loans.filter(l => l.status === 'borrowed');
-            }
-            // 'history' shows all
-
-            loading.style.display = 'none';
-
-            if (loans.length === 0) {
-                emptyMsg.style.display = 'block';
-                return;
-            }
-
-            tbody.innerHTML = loans.map(l => `
-                <tr>
-                    <td>${l.book.title}</td>
-                    <td>${new Date(l.loan_date).toLocaleDateString()}</td>
-                    <td>${new Date(l.due_date).toLocaleDateString()}</td>
-                    <td><span class="badge ${l.status === 'returned' ? 'bg-success' : (l.status === 'borrowed' ? 'bg-warning' : 'bg-danger')}">${l.status}</span></td>
-                    <td>Rp ${l.fine.toLocaleString()}</td>
-                </tr>
-            `).join('');
-
-        } catch (e) {
-            console.error(e);
-            loading.innerText = "Gagal memuat data.";
+    <script>
+        // Global Helpers
+        const token = getCookie('token');
+        function getCookie(name) {
+            const v = `; ${document.cookie}`;
+            const parts = v.split(`; ${name}=`);
+            return parts.length === 2 ? parts.pop().split(';').shift() : null;
         }
-    }
-</script>
-{{end}}
+        function logout() {
+            document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            window.location.href = '/';
+        }
+
+        // Modal logic
+        function toggleModal(id, show) {
+            const el = document.getElementById(id);
+            if (show) {
+                el.classList.add('show');
+                el.style.display = 'flex';
+                setTimeout(() => el.style.opacity = '1', 10);
+            } else {
+                el.style.opacity = '0';
+                setTimeout(() => {
+                    el.classList.remove('show');
+                    el.style.display = 'none';
+                }, 300);
+            }
+        }
+
+        // Notification Logic
+        async function checkNotifs() {
+            try {
+                const res = await fetch('/api/notifications', { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!res.ok) return;
+                const notifs = await res.json();
+
+                const unreadCount = notifs.filter(n => !n.is_read).length;
+                const badge = document.getElementById('notif-badge');
+                if (unreadCount > 0) {
+                    badge.style.display = 'flex';
+                    badge.innerText = unreadCount;
+                } else {
+                    badge.style.display = 'none';
+                }
+
+                // Render list
+                const list = document.getElementById('notif-list');
+                if (notifs.length === 0) {
+                    list.innerHTML = '<div style="padding:15px; text-align:center; color:#999">Tidak ada notifikasi</div>';
+                } else {
+                    list.innerHTML = notifs.map(n => `
+                        <div style="padding:10px; border-bottom:1px solid #eee; background:${n.is_read ? 'white' : '#f0f7ff'}; display:flex; justify-content:space-between; align-items:center;">
+                            <div style="flex:1;">
+                                <div style="font-size:0.85rem;">${n.message}</div>
+                                <div style="font-size:0.7rem; color:#888; margin-top:3px;">${new Date(n.created_at).toLocaleString()}</div>
+                            </div>
+                            <div style="display:flex; gap:5px; margin-left:10px;">
+                                ${!n.is_read ? `<button onclick="markRead(${n.id}, event)" title="Tandai dibaca" style="border:none; background:none; color:var(--primary); cursor:pointer;"><i class="fas fa-check"></i></button>` : ''}
+                                <button onclick="deleteNotif(${n.id}, event)" title="Hapus" style="border:none; background:none; color:var(--danger); cursor:pointer;"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (e) { }
+        }
+
+        async function markRead(id, event) {
+            if (event) event.stopPropagation();
+            await fetch(`/api/notifications/read?id=${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+            checkNotifs();
+        }
+
+        async function deleteNotif(id, event) {
+            if (event) event.stopPropagation();
+            if (!confirm('Hapus notifikasi ini?')) return;
+            await fetch(`/api/notifications/delete?id=${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+            checkNotifs();
+        }
+
+        function toggleNotif() {
+            const drop = document.getElementById('notif-dropdown');
+            drop.style.display = drop.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // Poll every 10 seconds
+        setInterval(checkNotifs, 10000);
+        checkNotifs();
+
+        // Close dropdown when clicking outside
+        window.onclick = function (event) {
+            if (!event.target.closest('.notif-container')) {
+                document.getElementById('notif-dropdown').style.display = 'none';
+            }
+        }
+    </script>
+    <script>
+        loadLoans();
+
+        async function loadLoans() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const view = urlParams.get('view') || 'active';
+
+            const res = await fetch('/api/loans?my=true', { headers: { 'Authorization': `Bearer ${token}` } });
+            const loans = await res.json();
+
+            // Client-side filter
+            // If view is history, show ALL loans (active + returned). If active, show only borrowed.
+            const filtered = loans.filter(l => view === 'history' ? true : l.status !== 'returned');
+
+            document.getElementById('loanTable').querySelector('tbody').innerHTML = filtered.map(l => {
+                const due = new Date(l.due_date);
+                const now = new Date();
+                const isLate = l.status === 'borrowed' && now > due;
+
+                // Translate Status
+                const statusMap = {
+                    'borrowed': 'Dipinjam',
+                    'returned': 'Dikembalikan'
+                };
+                const statusText = statusMap[l.status] || l.status;
+
+                let denda = l.fine;
+                if (isLate) {
+                    const days = Math.ceil((now - due) / (1000 * 60 * 60 * 24));
+                    denda = days * 5000;
+                }
+
+                return `
+            <tr>
+                <td>
+                    <div style="font-weight:600">${l.book.title}</div>
+                </td>
+                <td>${new Date(l.loan_date).toLocaleDateString()}</td>
+                <td>
+                    ${due.toLocaleDateString()}
+                    ${isLate ? '<span style="color:red; font-size:0.7rem">(Telat)</span>' : ''}
+                </td>
+                <td><span class="badge ${l.status === 'returned' ? 'bg-success' : 'bg-warning'}">${statusText}</span></td>
+                <td>${denda > 0 ? 'Rp ' + denda.toLocaleString() : '-'}</td>
+            </tr>
+            `;
+            }).join('');
+        }
+    </script>
+</body>
+
+</html>
