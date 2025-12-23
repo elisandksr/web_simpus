@@ -9,9 +9,16 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	// Load .env file
+	if err := godotenv.Load(); err != nil {
+		log.Println("⚠️  No .env file found, using default environment variables")
+	}
+
 	// ============================================
 	// DATABASE CONFIGURATION
 	// ============================================

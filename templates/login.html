@@ -342,8 +342,7 @@
                 username: document.getElementById('regUser').value,
                 password: document.getElementById('regPass').value,
                 fullname: document.getElementById('regFullname').value,
-                member_type: document.getElementById('regType').value,
-                role: 'member'
+                role: document.getElementById('regType').value
             };
 
             try {
@@ -352,14 +351,25 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
+
+                // Parse response whether success or error
+                let responseData;
+                try {
+                    responseData = await res.json();
+                } catch (e) {
+                    responseData = { message: 'Terjadi kesalahan pada server' };
+                }
+
                 if (res.ok) {
                     alert('Berhasil mendaftar! Silakan login.');
                     toggleForm();
                 } else {
-                    alert('Gagal mendaftar');
+                    // Show specific error from server if available
+                    alert('Gagal mendaftar: ' + (responseData.message || responseData.error || 'Terjadi kesalahan'));
                 }
             } catch (err) {
-                alert('Error server');
+                console.error(err);
+                alert('Error connecting to server');
             }
         });
 
