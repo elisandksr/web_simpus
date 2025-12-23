@@ -1,0 +1,154 @@
+{{define "content"}}
+<div class="card" style="background:transparent; box-shadow:none; border:none; padding:0;">
+    <div style="margin-bottom:20px;">
+        <div style="position:relative; width:100%;">
+            <i class="fas fa-search"
+                style="position:absolute; left:15px; top:50%; transform:translateY(-50%); color:var(--secondary); font-size:1rem;"></i>
+            <input type="text" id="catSearch" placeholder="Cari buku..." onkeyup="loadCat()"
+                style="width:100%; padding:12px 20px 12px 45px; border-radius:12px; border:1px solid #e2e8f0; box-shadow:0 2px 4px rgba(0,0,0,0.05); font-size:1rem; background:white; transition:all 0.3s ease;">
+        </div>
+    </div>
+
+    <div id="catGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px;">
+    </div>
+</div>
+
+<!-- Borrow Details Modal -->
+<div id="borrowModal" class="modal">
+    <div class="modal-content" style="max-width:600px; padding:30px; border-radius:15px;">
+        <div style="border-bottom:1px solid #eee; padding-bottom:15px; margin-bottom:20px;">
+            <h3 style="margin:0; font-size:1.5rem; color:var(--primary);">Detail Peminjaman</h3>
+            <p style="margin:5px 0 0 0; color:var(--text-light);">Pastikan buku yang Anda pilih sudah benar.</p>
+        </div>
+
+        <div style="display:flex; gap:25px; align-items:start;">
+            <!-- Book Cover -->
+            <div id="modalBookImg"
+                style="width:140px; height:200px; background:#f8f9fa; border-radius:10px; overflow:hidden; box-shadow:0 5px 15px rgba(0,0,0,0.1); flex-shrink:0;">
+            </div>
+
+            <!-- Book Info -->
+            <div style="flex:1;">
+                <span id="modalBookCat" class="badge bg-primary" style="margin-bottom:10px;">Category</span>
+                <h4 id="modalBookTitle"
+                    style="margin:0 0 10px 0; font-size:1.4rem; color:var(--text-main); line-height:1.3;">Judul Buku
+                    Disini</h4>
+
+                <div
+                    style="display:grid; grid-template-columns: auto 1fr; gap:8px 15px; margin-bottom:20px; font-size:0.95rem;">
+                    <span style="color:var(--text-light); font-weight:600;">Penulis:</span>
+                    <span id="modalBookAuthor" style="color:var(--text-main);">Nama Penulis</span>
+
+                    <span style="color:var(--text-light); font-weight:600;">Tahun:</span>
+                    <span id="modalBookYear" style="color:var(--text-main);">2024</span>
+
+                    <span style="color:var(--text-light); font-weight:600;">Stok:</span>
+                    <span id="modalBookStock" style="color:#2ecc71; font-weight:bold;">5 Tersedia</span>
+                </div>
+
+                <!-- Input Section -->
+                <div style="background:#f8f9fa; padding:15px; border-radius:10px; border:1px solid #e9ecef;">
+                    <label style="display:block; margin-bottom:8px; font-weight:700; color:var(--text-main);">Lama
+                        Pinjam</label>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <input type="number" id="loanDuration" value="7" min="1" max="7"
+                            style="flex:1; padding:10px; border:1px solid #ced4da; border-radius:8px; font-size:1rem; font-weight:600; text-align:center;">
+                        <span style="font-weight:600; color:var(--text-light);">Hari</span>
+                    </div>
+                    <small style="display:block; margin-top:5px; color:#6c757d; font-size:0.85rem;">*Maksimal peminjaman
+                        7 hari</small>
+                </div>
+            </div>
+        </div>
+
+        <div
+            style="display:flex; justify-content:flex-end; gap:15px; margin-top:30px; border-top:1px solid #eee; padding-top:20px;">
+            <button class="btn btn-danger" style="border-radius:8px; padding:10px 25px;"
+                onclick="closeBorrowModal()">Batal</button>
+            <button class="btn btn-primary"
+                style="border-radius:8px; padding:10px 25px; box-shadow:0 4px 6px rgba(52, 152, 219, 0.2);"
+                onclick="confirmBorrow()">Konfirmasi Pinjam</button>
+        </div>
+    </div>
+</div>
+{{end}}
+
+{{define "scripts"}}
+<script>
+    let selectedBookId = null;
+    loadCat();
+    async function loadCat() {
+        const q = document.getElementById('catSearch').value;
+        const res = await fetch(`/api/books?q=${q}`);
+        const books = await res.json();
+
+        document.getElementById('catGrid').innerHTML = books.map(b => `
+            <div style="background:var(--surface); border-radius:16px; overflow:hidden; box-shadow:var(--shadow); transition:transform 0.2s; border:1px solid #E2E8F0;">
+                <div style="height:200px; background:#F7FAFC; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                    ${b.image_url ? `<img src="${b.image_url}" style="width:100%; height:100%; object-fit:cover;" onError="this.style.display='none'">` : '<i class="fas fa-book fa-3x" style="color:#CBD5E0;"></i>'}
+                </div>
+                <div style="padding:1.5rem;">
+                    <span class="badge bg-primary" style="margin-bottom:10px;">${b.category}</span>
+                    <h3 style="margin:5px 0 10px 0; font-size:1.1rem; color:var(--text-main); font-weight:700; height:45px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; line-height:1.4;">${b.title}</h3>
+                    <div style="color:var(--text-secondary); font-size:0.85rem; margin-bottom:5px; display:flex; align-items:center; gap:6px;"><i class="fas fa-user-edit"></i> ${b.author}</div>
+                    <div style="color:var(--text-secondary); font-size:0.85rem; display:flex; align-items:center; gap:6px;"><i class="fas fa-calendar-alt"></i> ${b.published_year}</div>
+                    
+                    <div style="margin-top:15px; padding-top:15px; border-top:1px solid #EDF2F7; display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:700; font-size:0.9rem; color:${b.stock > 0 ? '#2F855A' : '#C53030'}">${b.stock} Eks</span>
+                        ${b.stock > 0 ? `<button class="btn btn-primary btn-sm" onclick='openBorrowModal(${JSON.stringify(b).replace(/'/g, "&#39;")})' style="border-radius:8px;">Pinjam</button>` : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function openBorrowModal(book) {
+        selectedBookId = book.id;
+        document.getElementById('modalBookTitle').innerText = book.title;
+        document.getElementById('modalBookAuthor').innerText = book.author;
+        document.getElementById('modalBookYear').innerText = book.published_year;
+        document.getElementById('modalBookCat').innerText = book.category;
+        document.getElementById('modalBookStock').innerText = book.stock + " Tersedia";
+
+        const imgContainer = document.getElementById('modalBookImg');
+        if (book.image_url) {
+            imgContainer.innerHTML = `<img src="${book.image_url}" style="width:100%; height:100%; object-fit:cover;">`;
+        } else {
+            imgContainer.innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100%;"><i class="fas fa-book fa-3x" style="color:#ccc"></i></div>';
+        }
+
+        document.getElementById('loanDuration').value = 7; // Default
+        toggleModal('borrowModal', true);
+    }
+
+    function closeBorrowModal() {
+        toggleModal('borrowModal', false);
+        selectedBookId = null;
+    }
+
+    async function confirmBorrow() {
+        if (!selectedBookId) return;
+
+        const duration = parseInt(document.getElementById('loanDuration').value);
+        if (isNaN(duration) || duration <= 0) {
+            alert("Durasi tidak valid");
+            return;
+        }
+
+        const res = await fetch('/api/loans', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ book_id: selectedBookId, duration: duration })
+        });
+
+        if (res.ok) {
+            alert('Berhasil dipinjam! Cek menu Peminjaman Saya.');
+            closeBorrowModal();
+            loadCat(); // Refresh stock
+        } else {
+            const err = await res.text();
+            alert('Gagal meminjam: ' + err);
+        }
+    }
+</script>
+{{end}}

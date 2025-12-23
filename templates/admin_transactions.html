@@ -1,0 +1,154 @@
+{{define "content"}}
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <div>
+            <h3 style="margin:0">Riwayat Transaksi</h3>
+            <p style="color:var(--text-light)">Kelola peminjaman dan pengembalian buku.</p>
+        </div>
+        <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Cetak Laporan</button>
+    </div>
+
+    <div style="overflow-x:auto;">
+        <table id="transTable" style="width:100%; border-collapse:separate; border-spacing:0;">
+            <thead>
+                <tr
+                    style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color:white; text-align:left;">
+                    <th style="padding:15px; border-top-left-radius:12px;">Peminjam</th>
+                    <th style="padding:15px;">Buku</th>
+                    <th style="padding:15px;">Tgl Pinjam</th>
+                    <th style="padding:15px;">Jatuh Tempo</th>
+                    <th style="padding:15px;">Status</th>
+                    <th style="padding:15px;">Denda (Est)</th>
+                    <th style="padding:15px; border-top-right-radius:12px;">Aksi</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Return Modal -->
+<div id="returnModal" class="modal">
+    <div class="modal-content">
+        <h3>Konfirmasi Pengembalian</h3>
+        <p>Apakah Anda yakin ingin memproses pengembalian ini?</p>
+
+        <div style="background:#f8f9fa; padding:15px; border-radius:10px; margin:15px 0;">
+            <p><strong>Hari Terlambat:</strong> <span id="lateDays">0</span> hari</p>
+            <p><strong>Denda (5000/hari):</strong> Rp <span id="fineAmount" style="color:red; font-weight:bold">0</span>
+            </p>
+            <p style="font-size:0.8rem; color:grey">*Notifikasi denda akan dikirim otomatis ke user.</p>
+        </div>
+
+        <div style="display:flex; justify-content:end; gap:10px;">
+            <button class="btn btn-primary" onclick="processReturn()">Konfirmasi & Kirim Notif</button>
+            <button class="btn btn-danger" onclick="toggleModal('returnModal', false)">Batal</button>
+        </div>
+        <input type="hidden" id="activeLoanId">
+    </div>
+</div>
+{{end}}
+
+{{define "scripts"}}
+<script>
+    loadTrans();
+    const FINE_PER_DAY = 5000;
+
+    async function loadTrans() {
+        const res = await fetch('/api/loans', { headers: { 'Authorization': `Bearer ${token}` } });
+        const loans = await res.json();
+
+        document.getElementById('transTable').querySelector('tbody').innerHTML = loans.map(l => {
+            // Calculate fine estimation client-side for display
+            let fine = l.fine;
+            let daysLate = 0;
+            if (l.status === 'borrowed') {
+                const due = new Date(l.due_date);
+                const now = new Date();
+                if (now > due) {
+                    const diffTime = Math.abs(now - due);
+                    daysLate = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    fine = daysLate * FINE_PER_DAY;
+                } else {
+                    fine = 0;
+                }
+            }
+
+            return `
+            <tr>
+                <td>
+                    <div style="font-weight:600">${l.user.username}</div>
+                    <div style="font-size:0.8rem; color:var(--text-light)">${l.user.role || 'Member'}</div>
+                </td>
+                <td>${l.book.title}</td>
+                <td>${new Date(l.loan_date).toLocaleDateString()}</td>
+                <td>
+                    ${new Date(l.due_date).toLocaleDateString()}
+                    ${daysLate > 0 && l.status === 'borrowed' ? `<span style="color:red; font-size:0.7rem">(${daysLate} hari telat)</span>` : ''}
+                </td>
+                <td><span class="badge ${l.status === 'returned' ? 'bg-success' : (l.status === 'borrowed' ? 'bg-warning' : 'bg-danger')}">${l.status}</span></td>
+                <td>Rp ${fine.toLocaleString()}</td>
+                <td>
+                    ${l.status === 'borrowed' ? `
+                        <button class="btn btn-success btn-sm" onclick="openReturnModal(${l.id}, '${l.due_date}')" title="Kembalikan"><i class="fas fa-check"></i></button>
+                        <button class="btn btn-primary btn-sm" onclick="extendLoan(${l.id})" title="Perpanjang"><i class="fas fa-history"></i></button>
+                    ` : '-'}
+                </td>
+            </tr>
+            `;
+        }).join('');
+    }
+
+    function openReturnModal(id, dueDateStr) {
+        document.getElementById('activeLoanId').value = id;
+
+        const due = new Date(dueDateStr);
+        const now = new Date();
+        let daysLate = 0;
+        let fine = 0;
+
+        if (now > due) {
+            const diffTime = Math.abs(now - due);
+            daysLate = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            fine = daysLate * FINE_PER_DAY;
+        }
+
+        document.getElementById('lateDays').innerText = daysLate;
+        document.getElementById('fineAmount').innerText = fine.toLocaleString();
+
+        toggleModal('returnModal', true);
+    }
+
+    async function processReturn() {
+        const id = document.getElementById('activeLoanId').value;
+        const res = await fetch('/api/loans/return', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ loan_id: parseInt(id) })
+        });
+        if (res.ok) {
+            toggleModal('returnModal', false);
+            loadTrans();
+        } else {
+            alert('Gagal memproses pengembalian');
+        }
+    }
+
+    async function extendLoan(id) {
+        if (!confirm('Perpanjang peminjaman selama 7 hari?')) return;
+        const res = await fetch('/api/loans/extend', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ loan_id: id })
+        });
+
+        if (res.ok) {
+            alert('Berhasil diperpanjang!');
+            loadTrans();
+        } else {
+            const data = await res.json().catch(() => ({}));
+            alert('Gagal: ' + (data.error || 'Buku sudah overdue'));
+        }
+    }
+</script>
+{{end}}

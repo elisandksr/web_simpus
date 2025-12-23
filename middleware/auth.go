@@ -39,10 +39,18 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			}
 		}
 
-		// STEP 3: Jika masih tidak ada token, return error
+		// STEP 3: Jika masih tidak ada token, return error atau redirect
 		if token == "" {
-			log.Println("No token found in header or cookie")
-			http.Error(w, "missing Authorization header or token cookie", http.StatusUnauthorized)
+			// Check if it's an API request or expects JSON
+			if strings.HasPrefix(r.URL.Path, "/api") || strings.Contains(r.Header.Get("Accept"), "application/json") {
+				log.Println("No token found for API request")
+				http.Error(w, "missing Authorization header or token cookie", http.StatusUnauthorized)
+				return
+			}
+
+			// If it's a page request, redirect to login
+			log.Println("No token found, redirecting to login")
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
 

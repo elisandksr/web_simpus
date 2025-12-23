@@ -1,0 +1,198 @@
+{{define "content"}}
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <div>
+            <h3 style="margin:0">Manajemen Anggota</h3>
+            <p style="color:var(--text-light)">Kelola data anggota perpustakaan.</p>
+        </div>
+        <div>
+            <input type="text" id="searchUser" placeholder="Cari nama/username..." onkeyup="loadUsers()"
+                style="padding:10px 15px; border-radius:10px; border:2px solid #e9ecef;">
+        </div>
+    </div>
+
+    <div style="overflow-x:auto;">
+        <table id="usersTable" style="width:100%; border-collapse:separate; border-spacing:0;">
+            <thead>
+                <tr
+                    style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color:white; text-align:left;">
+                    <th style="padding:15px; border-top-left-radius:12px;">Username</th>
+                    <th style="padding:15px;">Nama Lengkap</th>
+                    <th style="padding:15px;">NIP/NIM</th>
+                    <th style="padding:15px;">Kontak</th>
+                    <!-- "Tipe" column removed, merged into Role -->
+                    <th style="padding:15px;">Role</th>
+                    <th style="padding:15px; border-top-right-radius:12px;">Aksi</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div id="userModal" class="modal">
+    <div class="modal-content">
+        <h3>Edit Anggota</h3>
+        <form onsubmit="saveUser(event)">
+            <input type="hidden" id="userId">
+            <div style="margin-bottom:15px;">
+                <label>Nama Lengkap</label>
+                <input id="uFullname" required>
+            </div>
+            <div style="margin-bottom:15px;">
+                <label>NIP / NIM</label>
+                <input id="uNip">
+            </div>
+            <div style="margin-bottom:15px;">
+                <label>Kontak (HP/Email)</label>
+                <input id="uContact">
+            </div>
+            <!-- Tipe Anggota field removed -->
+            <div style="margin-bottom:20px;">
+                <label>Role</label>
+                <select id="uRole">
+                    <option value="mahasiswa">Mahasiswa</option>
+                    <option value="guru">Guru</option>
+                    <option value="karyawan">Karyawan</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+
+            <div style="display:flex; justify-content:end; gap:10px;">
+                <button type="submit" class="btn btn-primary">Simpan</button>
+                <button type="button" class="btn btn-danger" onclick="toggleModal('userModal', false)">Batal</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Send Notification Modal -->
+<div id="notifModal" class="modal">
+    <div class="modal-content">
+        <h3>Kirim Notifikasi</h3>
+        <p>Ke: <span id="notifTargetUser" style="font-weight:bold"></span></p>
+        <form onsubmit="sendNotif(event)">
+            <input type="hidden" id="notifUserId">
+            <div style="margin-bottom:15px;">
+                <label>Pesan</label>
+                <textarea id="notifMessage" rows="4" required placeholder="Tulis pesan disini..."></textarea>
+            </div>
+            <div style="display:flex; justify-content:end; gap:10px;">
+                <button type="submit" class="btn btn-primary">Kirim</button>
+                <button type="button" class="btn btn-danger" onclick="toggleModal('notifModal', false)">Batal</button>
+            </div>
+        </form>
+    </div>
+</div>
+{{end}}
+
+{{define "scripts"}}
+<script>
+    loadUsers();
+
+    async function loadUsers() {
+        const q = document.getElementById('searchUser').value;
+        const res = await fetch(`/api/users?q=${q}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const users = await res.json();
+
+        const tbody = document.getElementById('usersTable').querySelector('tbody');
+        tbody.innerHTML = users.map(u => `
+            <tr>
+                <td>
+                    <div style="font-weight:600">${u.username}</div>
+                    <div style="font-size:0.8rem; color:var(--text-light)">ID: ${u.id.substring(0, 8)}...</div>
+                </td>
+                <td>${u.fullname || '-'}</td>
+                <td>${u.nip || '-'}</td>
+                <td>${u.contact || '-'}</td>
+                <!-- Display Role directly -->
+                <td><span class="badge ${u.role === 'admin' ? 'bg-danger' : 'bg-success'}">${u.role}</span></td>
+                <td>
+                    <button class="btn btn-warning btn-sm" onclick='editUser(${JSON.stringify(u)})' title="Edit"><i class="fas fa-edit"></i></button>
+                    ${u.role !== 'admin' ? `<button class="btn btn-danger btn-sm" onclick="delUser('${u.id}')" title="Hapus"><i class="fas fa-trash"></i></button>` : ''}
+                    <button class="btn btn-info btn-sm" onclick="showSendNotif('${u.id}', '${u.username}')" title="Kirim Pesan" style="color:white;"><i class="fas fa-paper-plane"></i></button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function editUser(user) {
+        document.getElementById('userId').value = user.id;
+        document.getElementById('uFullname').value = user.fullname;
+        document.getElementById('uNip').value = user.nip || '';
+        document.getElementById('uContact').value = user.contact || '';
+        // Map user role directly
+        document.getElementById('uRole').value = user.role;
+        toggleModal('userModal', true);
+    }
+
+    async function saveUser(e) {
+        e.preventDefault();
+        const data = {
+            id: document.getElementById('userId').value,
+            fullname: document.getElementById('uFullname').value,
+            nip: document.getElementById('uNip').value,
+            contact: document.getElementById('uContact').value,
+            member_type: document.getElementById('uRole').value, // Mirror role to member_type for safety
+            role: document.getElementById('uRole').value
+        };
+
+        const res = await fetch('/api/users/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(data)
+        });
+
+        if (res.ok) {
+            alert('User berhasil diupdate');
+            toggleModal('userModal', false);
+            loadUsers();
+        } else {
+            alert('Gagal update user');
+        }
+    }
+
+    async function delUser(id) {
+        if (!confirm('Hapus user ini selamanya?')) return;
+        const res = await fetch(`/api/users/delete?id=${id}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+            loadUsers();
+        } else {
+            alert("Gagal menghapus user");
+        }
+    }
+
+    function showSendNotif(id, username) {
+        document.getElementById('notifUserId').value = id;
+        document.getElementById('notifTargetUser').innerText = username;
+        document.getElementById('notifMessage').value = '';
+        toggleModal('notifModal', true);
+    }
+
+    async function sendNotif(e) {
+        e.preventDefault();
+        const data = {
+            user_id: document.getElementById('notifUserId').value,
+            message: document.getElementById('notifMessage').value
+        };
+
+        const res = await fetch('/api/notifications/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(data)
+        });
+
+        if (res.ok) {
+            alert('Notifikasi terkirim!');
+            toggleModal('notifModal', false);
+        } else {
+            alert('Gagal mengirim notification');
+        }
+    }
+</script>
+{{end}}

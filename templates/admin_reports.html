@@ -1,0 +1,136 @@
+{{define "content"}}
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <div>
+            <h3 style="margin:0">Laporan Perpustakaan</h3>
+            <p style="color:var(--text-light)">Rekapitulasi data peminjaman dan denda.</p>
+        </div>
+        <button class="btn btn-primary" onclick="printReport()"><i class="fas fa-print"></i> Cetak Laporan</button>
+    </div>
+
+    <!-- Stats Summary -->
+    <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:15px; margin-bottom:30px;">
+        <div style="background:#f8f9fa; padding:15px; border-radius:10px; text-align:center;">
+            <div style="color:var(--text-light); font-size:0.9rem;">Total Peminjaman</div>
+            <div style="font-size:1.5rem; font-weight:bold; color:var(--primary);" id="totalLoans">0</div>
+        </div>
+        <div style="background:#f8f9fa; padding:15px; border-radius:10px; text-align:center;">
+            <div style="color:var(--text-light); font-size:0.9rem;">Buku Dikembalikan</div>
+            <div style="font-size:1.5rem; font-weight:bold; color:var(--success);" id="totalReturned">0</div>
+        </div>
+        <div style="background:#f8f9fa; padding:15px; border-radius:10px; text-align:center;">
+            <div style="color:var(--text-light); font-size:0.9rem;">Total Denda</div>
+            <div style="font-size:1.5rem; font-weight:bold; color:var(--danger);" id="totalFines">Rp 0</div>
+        </div>
+        <div style="background:#f8f9fa; padding:15px; border-radius:10px; text-align:center;">
+            <div style="color:var(--text-light); font-size:0.9rem;">Keterlambatan Aktif</div>
+            <div style="font-size:1.5rem; font-weight:bold; color:#e67e22;" id="totalOverdue">0</div>
+        </div>
+    </div>
+
+    <!-- Loan List -->
+    <h4>Riwayat Transaksi</h4>
+    <div style="overflow-x:auto;">
+        <table id="reportTable" style="width:100%; border-collapse:separate; border-spacing:0;">
+            <thead>
+                <tr
+                    style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color:white; text-align:left;">
+                    <th style="padding:15px; border-top-left-radius:12px;">Peminjam</th>
+                    <th style="padding:15px;">Buku</th>
+                    <th style="padding:15px;">Tgl Pinjam</th>
+                    <th style="padding:15px;">Tgl Kembali</th>
+                    <th style="padding:15px;">Status</th>
+                    <th style="padding:15px; border-top-right-radius:12px;">Denda</th>
+                </tr>
+            </thead>
+            <tbody id="reportBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+
+        .card,
+        .card * {
+            visibility: visible;
+        }
+
+        .card {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            border: none;
+            box-shadow: none;
+        }
+
+        .btn {
+            display: none;
+        }
+    }
+</style>
+{{end}}
+
+{{define "scripts"}}
+<script>
+    loadReports();
+
+    async function loadReports() {
+        // We reuse the existing /api/loans endpoint which admins can see all
+        const res = await fetch('/api/loans');
+        const loans = await res.json();
+        const tbody = document.getElementById('reportBody');
+
+        let fines = 0;
+        let returned = 0;
+        let overdue = 0;
+
+        tbody.innerHTML = loans.map(l => {
+            const isLate = new Date() > new Date(l.due_date) && l.status === 'borrowed';
+            if (l.status === 'returned') returned++;
+            if (l.fine > 0) fines += l.fine;
+            if (isLate) overdue++;
+
+            return `
+            <tr>
+                <td>${l.user ? l.user.username : 'Unknown'}</td>
+                <td>${l.book ? l.book.title : 'Unknown'}</td>
+                <td>${new Date(l.loan_date).toLocaleDateString()}</td>
+                <td>${l.return_date ? new Date(l.return_date).toLocaleDateString() : '-'}</td>
+                <td>
+                    <span class="badge ${getStatusColor(l.status, l.due_date)}">
+                        ${getStatusText(l.status, l.due_date)}
+                    </span>
+                </td>
+                <td>${l.fine > 0 ? 'Rp ' + l.fine.toLocaleString() : '-'}</td>
+            </tr>
+            `;
+        }).join('');
+
+        document.getElementById('totalLoans').innerText = loans.length;
+        document.getElementById('totalReturned').innerText = returned;
+        document.getElementById('totalFines').innerText = 'Rp ' + fines.toLocaleString();
+        document.getElementById('totalOverdue').innerText = overdue;
+    }
+
+    function getStatusColor(status, due) {
+        if (status === 'returned') return 'bg-success';
+        if (new Date() > new Date(due)) return 'bg-danger';
+        return 'bg-warning';
+    }
+
+    function getStatusText(status, due) {
+        if (status === 'returned') return 'Dikembalikan';
+        if (new Date() > new Date(due)) return 'Terlambat';
+        return 'Dipinjam';
+    }
+
+    function printReport() {
+        window.print();
+    }
+</script>
+{{end}}

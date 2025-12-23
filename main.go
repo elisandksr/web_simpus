@@ -4,6 +4,7 @@ import (
 	"latihan_cloud8/handlers"
 	"latihan_cloud8/middleware"
 	"latihan_cloud8/store"
+	"latihan_cloud8/workers" // Import workers
 	"log"
 	"net/http"
 	"os"
@@ -49,13 +50,28 @@ func main() {
 	}
 	defer st.Close()
 
+	// Initialize Schema (SIMPUS Tables)
+	if err := st.InitSchema(); err != nil {
+		log.Fatalf("Failed to upload schema: %v", err)
+	}
+
 	log.Println("✅ Successfully connected to MySQL database")
 
 	// ============================================
 	// HANDLERS INITIALIZATION
-	// ============================================
+	// ============================================	// Init Handlers
+	// Init Handlers
 	authHandler := handlers.NewAuthHandler(st)
-	pageHandler := handlers.NewPageHandler()
+	bookHandler := handlers.NewBookHandler(st)
+	loanHandler := handlers.NewLoanHandler(st)
+
+	categoryHandler := handlers.NewCategoryHandler(st)
+	pageHandler := handlers.NewPageHandler(st)          // Inject store
+	notifHandler := handlers.NewNotificationHandler(st) // Init Notification Handler
+
+	// Start Background Worker
+	notifier := workers.NewNotifier(st)
+	notifier.Start()
 
 	// ============================================
 	// ROUTES SETUP
@@ -66,31 +82,67 @@ func main() {
 	fs := http.FileServer(http.Dir("static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	// ============================================
-	// PUBLIC ROUTES (Tidak perlu auth)
-	// ============================================
-	log.Println("Setting up public routes...")
-	mux.HandleFunc("/", pageHandler.ShowLoginPage)              // GET - Halaman login
-	mux.HandleFunc("/login", authHandler.Login)                // POST - API login
-	mux.HandleFunc("/register", authHandler.Register)          // POST - API register
+	// Uploads
+	up := http.FileServer(http.Dir("upload"))
+	mux.Handle("/upload/", http.StripPrefix("/upload/", up))
 
-	// ============================================
-	// PROTECTED ROUTES (Perlu auth)
-	// ============================================
-	log.Println("Setting up protected routes...")
+	// Public Routes
+	mux.HandleFunc("/", pageHandler.ShowLandingPage)
+	mux.HandleFunc("/login", pageHandler.ShowLoginPage)
+	mux.HandleFunc("/api/login", authHandler.Login) // distinct from page
+	mux.HandleFunc("/register", authHandler.Register)
+	mux.HandleFunc("/api/books", bookHandler.GetBooks)
 
-	// PENTING: Gunakan middleware.AuthMiddleware untuk protect routes
-	// Middleware akan cek token dari Authorization header ATAU cookie
-	
-	// Admin page - Protected
-	mux.Handle("/admin", middleware.AuthMiddleware(http.HandlerFunc(pageHandler.ShowAdminPage)))
+	mux.Handle("/api/profile/update", middleware.AuthMiddleware(http.HandlerFunc(authHandler.UpdateSelf)))
 
-	// API Profile - Protected
+	// Protected Page Routes (UI)
+	// Common
+	mux.Handle("/dashboard", middleware.AuthMiddleware(http.HandlerFunc(pageHandler.ShowDashboard)))
+	mux.Handle("/profile", middleware.AuthMiddleware(http.HandlerFunc(pageHandler.ShowProfile)))
+
+	// Admin UI
+	mux.Handle("/admin", middleware.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+	}))) // Redirect /admin to dashboard
+	mux.Handle("/admin/books", middleware.AuthMiddleware(middleware.RequireRole("admin")(http.HandlerFunc(pageHandler.ShowAdminBooks))))
+	mux.Handle("/admin/members", middleware.AuthMiddleware(middleware.RequireRole("admin")(http.HandlerFunc(pageHandler.ShowAdminMembers))))
+	mux.Handle("/admin/transactions", middleware.AuthMiddleware(middleware.RequireRole("admin")(http.HandlerFunc(pageHandler.ShowAdminTransactions))))
+	mux.Handle("/admin/reports", middleware.AuthMiddleware(middleware.RequireRole("admin")(http.HandlerFunc(pageHandler.ShowAdminReports))))
+
+	// Member UI
+	mux.Handle("/catalog", middleware.AuthMiddleware(http.HandlerFunc(pageHandler.ShowCatalog)))
+	mux.Handle("/loans", middleware.AuthMiddleware(http.HandlerFunc(pageHandler.ShowMyLoans)))
+
+	// API Routes (JSON)
 	mux.Handle("/api/profile", middleware.AuthMiddleware(http.HandlerFunc(authHandler.Profile)))
+	mux.Handle("/api/users", middleware.AuthMiddleware(middleware.RequireRole("admin")(http.HandlerFunc(authHandler.GetUsers))))
+	mux.Handle("/api/users/update", middleware.AuthMiddleware(middleware.RequireRole("admin")(http.HandlerFunc(authHandler.UpdateUser))))
+	mux.Handle("/api/users/delete", middleware.AuthMiddleware(middleware.RequireRole("admin")(http.HandlerFunc(authHandler.DeleteUser))))
 
-	// Admin only routes
-	adminUsersHandler := middleware.RequireRole("admin")(http.HandlerFunc(authHandler.GetUsers))
-	mux.Handle("/api/users", middleware.AuthMiddleware(adminUsersHandler))
+	mux.Handle("/api/books/create", middleware.AuthMiddleware(middleware.RequireRole("admin")(http.HandlerFunc(bookHandler.CreateBook))))
+	mux.Handle("/api/books/update", middleware.AuthMiddleware(middleware.RequireRole("admin")(http.HandlerFunc(bookHandler.UpdateBook))))
+	mux.Handle("/api/books/delete", middleware.AuthMiddleware(middleware.RequireRole("admin")(http.HandlerFunc(bookHandler.DeleteBook))))
+
+	mux.Handle("/api/categories", middleware.AuthMiddleware(http.HandlerFunc(categoryHandler.GetCategories)))
+	mux.Handle("/api/categories/create", middleware.AuthMiddleware(middleware.RequireRole("admin")(http.HandlerFunc(categoryHandler.CreateCategory))))
+	mux.Handle("/api/categories/delete", middleware.AuthMiddleware(middleware.RequireRole("admin")(http.HandlerFunc(categoryHandler.DeleteCategory))))
+
+	mux.Handle("/api/loans", middleware.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			loanHandler.Borrow(w, r)
+		} else {
+			loanHandler.ListLoans(w, r)
+		}
+	})))
+	mux.Handle("/api/loans/return", middleware.AuthMiddleware(middleware.RequireRole("admin")(http.HandlerFunc(loanHandler.Return))))
+	mux.Handle("/api/loans/extend", middleware.AuthMiddleware(http.HandlerFunc(loanHandler.Extend)))
+
+	// Notification Routes
+	mux.Handle("/notifications", middleware.AuthMiddleware(http.HandlerFunc(notifHandler.ShowNotificationsPage)))
+	mux.Handle("/api/notifications", middleware.AuthMiddleware(http.HandlerFunc(notifHandler.GetNotifications)))
+	mux.Handle("/api/notifications/read", middleware.AuthMiddleware(http.HandlerFunc(notifHandler.MarkRead)))
+	mux.Handle("/api/notifications/delete", middleware.AuthMiddleware(http.HandlerFunc(notifHandler.DeleteNotification)))
+	mux.Handle("/api/notifications/send", middleware.AuthMiddleware(middleware.RequireRole("admin")(http.HandlerFunc(notifHandler.SendNotification))))
 
 	// ============================================
 	// APPLY LOGGING MIDDLEWARE GLOBALLY

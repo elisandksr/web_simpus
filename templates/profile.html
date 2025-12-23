@@ -1,0 +1,109 @@
+{{define "content"}}
+<div class="card">
+
+    <div class="card-body">
+        <div style="display: flex; align-items: center; margin-bottom: 2rem;">
+            <div
+                style="width: 80px; height: 80px; background: #e3e6f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: #858796; margin-right: 20px;">
+                <i class="fas fa-user"></i>
+            </div>
+            <div>
+                <h3 style="margin: 0;">{{.Username}}</h3>
+                <p style="color: #858796; margin: 5px 0;">{{.Role}}</p>
+            </div>
+        </div>
+
+        <form id="profileForm" onsubmit="updateProfile(event)">
+            <div style="margin-bottom: 1rem;">
+                <label>Username</label>
+                <input type="text" value="{{.User.Username}}" disabled
+                    style="width: 100%; padding: 10px; border: 1px solid #ddd; background: #eaecf4;">
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label>Role</label>
+                <input type="text" value="{{.Role}}" disabled
+                    style="width: 100%; padding: 10px; border: 1px solid #ddd; background: #eaecf4; text-transform:capitalize;">
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <label>Nama Lengkap</label>
+                <input type="text" id="pName" value="{{.User.Fullname}}" disabled
+                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius:10px; background: #eaecf4;">
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label>NIP / NIM</label>
+                <input type="text" id="pNip" value="{{.User.NIP}}" disabled
+                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius:10px; background: #eaecf4;">
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label>Kontak (HP/Email)</label>
+                <input type="text" id="pContact" value="{{.User.Contact}}" disabled
+                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius:10px; background: #eaecf4;">
+            </div>
+
+            <div style="display:flex; gap:10px;">
+                <button type="button" id="btnEdit" class="btn btn-warning" style="width:100%"
+                    onclick="enableEdit()">Edit Profil</button>
+                <button type="submit" id="btnSave" class="btn btn-primary" style="width:100%; display:none;">Simpan
+                    Perubahan</button>
+                <button type="button" id="btnCancel" class="btn btn-secondary" style="width:100%; display:none;"
+                    onclick="cancelEdit()">Batal</button>
+            </div>
+        </form>
+    </div>
+</div>
+{{end}}
+
+{{define "scripts"}}
+<script>
+    function enableEdit() {
+        document.getElementById('pName').disabled = false;
+        document.getElementById('pNip').disabled = false;
+        document.getElementById('pContact').disabled = false;
+
+        // Style updates to show active state
+        ['pName', 'pNip', 'pContact'].forEach(id => {
+            document.getElementById(id).style.background = 'white';
+        });
+
+        document.getElementById('btnEdit').style.display = 'none';
+        document.getElementById('btnSave').style.display = 'block';
+        document.getElementById('btnCancel').style.display = 'block';
+    }
+
+    function cancelEdit() {
+        window.location.reload();
+    }
+
+    async function updateProfile(e) {
+        e.preventDefault();
+        const data = {
+            fullname: document.getElementById('pName').value,
+            nip: document.getElementById('pNip').value,
+            contact: document.getElementById('pContact').value
+        };
+
+        const res = await fetch('/api/profile/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` // Ensure token is available from layout global or cookie
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (res.ok) {
+            alert('Profil berhasil diperbaharui');
+            window.location.reload();
+        } else {
+            alert('Gagal memperbaharui profil');
+        }
+    }
+</script>
+</div>
+</div>
+{{end}}
+
+{{define "scripts"}}{{end}}

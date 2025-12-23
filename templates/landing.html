@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selamat Datang | SIMPUS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #F8F9FA;
+            /* Solid Light Gray */
+            min-height: 100vh;
+            color: #212529;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 0;
+            margin-bottom: 3rem;
+        }
+
+        .brand {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #0D6EFD;
+            /* Solid Blue */
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+            margin-bottom: 5rem;
+        }
+
+        .hero-content h1 {
+            font-size: 3.5rem;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            color: #0D6EFD;
+            /* Solid Blue */
+        }
+
+        .hero-content p {
+            font-size: 1.2rem;
+            color: #6c757d;
+            margin-bottom: 2.5rem;
+            line-height: 1.6;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 20px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background: #0D6EFD;
+            color: white;
+            border: 2px solid #0D6EFD;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            background: #0a58ca;
+            border-color: #0a58ca;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #0D6EFD;
+            border: 2px solid #0D6EFD;
+            box-shadow: none;
+        }
+
+        .btn-outline:hover {
+            background: rgba(13, 110, 253, 0.1);
+            transform: translateY(-5px);
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 5rem;
+        }
+
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+            transition: 0.2s;
+            border: 1px solid #e9ecef;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            border-color: #0D6EFD;
+        }
+
+        .card i {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            color: #0D6EFD;
+        }
+
+        .card h3 {
+            font-size: 1.4rem;
+            margin-bottom: 0.8rem;
+            font-weight: 700;
+        }
+
+        .card p {
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        footer {
+            text-align: center;
+            color: #8d99ae;
+            padding: 3rem 0;
+            border-top: 1px solid #e9ecef;
+            display: none;
+            /* Hide footer as requested */
+        }
+
+        @media (max-width: 768px) {
+            .hero {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: 2rem;
+            }
+
+            .buttons {
+                justify-content: center;
+            }
+
+            .hero-content h1 {
+                font-size: 3rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="brand">
+                <i class="fas fa-book-reader fa-lg"></i> SIMPUS
+            </div>
+            <div>
+                <a href="/login" class="btn btn-primary" style="padding: 10px 25px; font-size: 1rem;">Login Area</a>
+            </div>
+        </nav>
+
+        <section class="hero">
+            <div class="hero-content">
+                <h1>Masa Depan<br>Perpustakaan Digital</h1>
+                <p>SIMPUS menghadirkan pengalaman peminjaman buku yang modern, cepat, dan mudah. Kelola sirkulasi
+                    buku, anggota, dan denda dalam satu platform terintegrasi.</p>
+                <div class="buttons">
+                    <a href="/login?role=member" class="btn btn-primary">
+                        <i class="fas fa-user"></i> Member Login
+                    </a>
+                    <a href="/login?role=admin" class="btn btn-outline">
+                        <i class="fas fa-user-shield"></i> Admin Panel
+                    </a>
+                </div>
+            </div>
+            <div class="hero-image"
+                style="position: relative; display: flex; justify-content: center; align-items: center;">
+                <i class="fas fa-book-open" style="font-size: 15rem; color: rgba(0, 119, 182, 0.1);"></i>
+            </div>
+        </section>
+
+        <section class="features">
+            <div class="card">
+                <i class="fas fa-search-location"></i>
+                <h3>Pencarian Cepat</h3>
+                <p>Temukan buku favoritmu dalam hitungan detik dengan sistem pencarian real-time yang canggih.</p>
+            </div>
+            <div class="card">
+                <i class="fas fa-calendar-check"></i>
+                <h3>Peminjaman Mudah</h3>
+                <p>Proses peminjaman mandiri tanpa antre. Cukup klik dan ambil buku yang kamu inginkan.</p>
+            </div>
+            <div class="card">
+                <i class="fas fa-bell"></i>
+                <h3>Notifikasi Pintar</h3>
+                <p>Tidak perlu khawatir lupa tanggal kembali. Sistem akan mengingatkanmu secara otomatis.</p>
+            </div>
+        </section>
+
+        <footer></footer>
+    </div>
+</body>
+
+</html>

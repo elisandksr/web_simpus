@@ -8,7 +8,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// Claims tambahan untuk JWT
 type Claims struct {
 	Username string `json:"username"`
 	Role     string `json:"role"`

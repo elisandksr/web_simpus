@@ -1,0 +1,57 @@
+{{define "content"}}
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <div>
+            <h3 style="margin:0">Riwayat Notifikasi</h3>
+            <p style="color:var(--text-light)">Semua notifikasi yang masuk.</p>
+        </div>
+    </div>
+
+    <div id="notif-history">
+        <p style="text-align:center; color:#888;">Memuat...</p>
+    </div>
+</div>
+{{end}}
+
+{{define "scripts"}}
+<script>
+    loadNotifHistory();
+
+    async function loadNotifHistory() {
+        const res = await fetch('/api/notifications', { headers: { 'Authorization': `Bearer ${token}` } });
+        const notifs = await res.json();
+        const container = document.getElementById('notif-history');
+
+        if (notifs.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#888;">Belum ada notifikasi.</p>';
+            return;
+        }
+
+        container.innerHTML = notifs.map(n => `
+            <div style="padding:15px; border-bottom:1px solid #eee; background:${n.is_read ? 'white' : '#f0f7ff'}; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div style="font-weight:${n.is_read ? '400' : '600'}">${n.message}</div>
+                    <div style="font-size:0.8rem; color:#888; margin-top:5px;">${new Date(n.created_at).toLocaleString()}</div>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    ${!n.is_read ? `<button class="btn btn-sm btn-primary" onclick="markReadAndReload(${n.id})">Tandai Dibaca</button>` : '<span style="font-size:0.8rem; color:green; margin-right:10px;"><i class="fas fa-check"></i> Dibaca</span>'}
+                    <button class="btn btn-sm btn-danger" onclick="deleteNotifPage(${n.id})"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function markReadAndReload(id) {
+        await fetch(`/api/notifications/read?id=${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        loadNotifHistory();
+        checkNotifs(); // Update badge in navbar
+    }
+
+    async function deleteNotifPage(id) {
+        if (!confirm('Hapus notifikasi ini?')) return;
+        await fetch(`/api/notifications/delete?id=${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        loadNotifHistory();
+        checkNotifs();
+    }
+</script>
+{{end}}

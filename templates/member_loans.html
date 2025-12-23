@@ -1,0 +1,93 @@
+{{define "content"}}
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <div>
+            <h3 style="margin:0" id="page-title">Peminjaman Saya</h3>
+            <p style="color:var(--text-light)" id="page-desc">Daftar buku yang sedang Anda pinjam.</p>
+        </div>
+    </div>
+
+    <div class="card-body" style="padding:0;">
+        <table style="width:100%; border-collapse:separate; border-spacing:0;">
+            <thead>
+                <tr
+                    style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color:white; text-align:left;">
+                    <th style="padding:15px; border-top-left-radius:12px;">Buku</th>
+                    <th style="padding:15px;">Tgl Pinjam</th>
+                    <th style="padding:15px;">Jatuh Tempo</th>
+                    <th style="padding:15px;">Status</th>
+                    <th style="padding:15px; border-top-right-radius:12px;">Denda</th>
+                </tr>
+            </thead>
+            <tbody id="loansBody"></tbody>
+        </table>
+        <div id="loading" style="text-align:center; padding:20px; color:#888;">Memuat data...</div>
+        <div id="empty-msg" style="display:none; text-align:center; padding:20px; color:#888;">Tidak ada data
+            peminjaman.</div>
+    </div>
+</div>
+{{end}}
+
+{{define "scripts"}}
+<script>
+    // Get view param
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentView = urlParams.get('view') || 'active';
+
+    // Set Title
+    const titleEl = document.getElementById('page-title');
+    const descEl = document.getElementById('page-desc');
+
+    if (currentView === 'history') {
+        titleEl.innerText = 'Riwayat Peminjaman';
+        descEl.innerText = 'Riwayat lengkap seluruh peminjaman buku Anda.';
+    } else {
+        titleEl.innerText = 'Peminjaman Saya';
+        descEl.innerText = 'Daftar buku yang sedang Anda pinjam saat ini.';
+    }
+
+    loadLoans();
+
+    async function loadLoans() {
+        const tbody = document.getElementById('loansBody');
+        const loading = document.getElementById('loading');
+        const emptyMsg = document.getElementById('empty-msg');
+
+        tbody.innerHTML = '';
+        loading.style.display = 'block';
+        emptyMsg.style.display = 'none';
+
+        try {
+            const res = await fetch('/api/loans', { headers: { 'Authorization': `Bearer ${token}` } });
+            let loans = await res.json();
+
+            // Filter client-side
+            if (currentView === 'active') {
+                loans = loans.filter(l => l.status === 'borrowed');
+            }
+            // 'history' shows all
+
+            loading.style.display = 'none';
+
+            if (loans.length === 0) {
+                emptyMsg.style.display = 'block';
+                return;
+            }
+
+            tbody.innerHTML = loans.map(l => `
+                <tr>
+                    <td>${l.book.title}</td>
+                    <td>${new Date(l.loan_date).toLocaleDateString()}</td>
+                    <td>${new Date(l.due_date).toLocaleDateString()}</td>
+                    <td><span class="badge ${l.status === 'returned' ? 'bg-success' : (l.status === 'borrowed' ? 'bg-warning' : 'bg-danger')}">${l.status}</span></td>
+                    <td>Rp ${l.fine.toLocaleString()}</td>
+                </tr>
+            `).join('');
+
+        } catch (e) {
+            console.error(e);
+            loading.innerText = "Gagal memuat data.";
+        }
+    }
+</script>
+{{end}}
