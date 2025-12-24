@@ -95,6 +95,14 @@
             padding: 1.5rem 1rem;
             list-style: none;
             overflow-y: auto;
+            -ms-overflow-style: none;
+            /* IE and Edge */
+            scrollbar-width: none;
+            /* Firefox */
+        }
+
+        .sidebar-menu::-webkit-scrollbar {
+            display: none;
         }
 
         .menu-label {
