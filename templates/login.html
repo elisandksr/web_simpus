@@ -232,6 +232,17 @@
             margin-top: 10px;
             display: none;
         }
+
+        /* Compact inputs for Register Form */
+        #registerForm input,
+        #registerForm select {
+            padding: 8px 10px;
+            font-size: 0.9rem;
+            height: 40px;
+            /* Fixed height for uniformity */
+            width: 100%;
+            /* Ensure full width */
+        }
     </style>
 </head>
 
@@ -266,52 +277,16 @@
             </div>
             <button type="submit">Masuk Sekarang</button>
             <div class="error" id="error-msg">Error message here</div>
-            <div class="toggle">
-                Belum punya akun? <a onclick="toggleForm()">Daftar disini</a>
-            </div>
+
         </form>
 
-        <!-- REGISTER FORM -->
-        <form id="registerForm" class="hidden">
-            <div class="form-group">
-                <label>Username</label>
-                <input type="text" id="regUser" required>
-            </div>
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" id="regPass" required>
-            </div>
-            <div class="form-group">
-                <label>Nama Lengkap</label>
-                <input type="text" id="regFullname" required>
-            </div>
-            <div class="form-group">
-                <label>Tipe Anggota</label>
-                <select id="regType">
-                    <option value="mahasiswa">Mahasiswa</option>
-                    <option value="guru">Guru</option>
-                    <option value="karyawan">Karyawan</option>
-                </select>
-            </div>
-            <button type="submit">Daftar Akun</button>
-            <div class="toggle">
-                Sudah punya akun? <a onclick="toggleForm()">Login disini</a>
-            </div>
-        </form>
+
     </div>
 
     <script>
         const loginForm = document.getElementById('loginForm');
-        const registerForm = document.getElementById('registerForm');
         const title = document.getElementById('title');
         const errorMsg = document.getElementById('error-msg');
-
-        function toggleForm() {
-            loginForm.classList.toggle('hidden');
-            registerForm.classList.toggle('hidden');
-            title.textContent = loginForm.classList.contains('hidden') ? 'Daftar Anggota' : 'Login SIMPUS';
-            errorMsg.style.display = 'none';
-        }
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -336,32 +311,7 @@
             }
         });
 
-        registerForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const data = {
-                username: document.getElementById('regUser').value,
-                password: document.getElementById('regPass').value,
-                fullname: document.getElementById('regFullname').value,
-                member_type: document.getElementById('regType').value,
-                role: 'member'
-            };
 
-            try {
-                const res = await fetch('/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                if (res.ok) {
-                    alert('Berhasil mendaftar! Silakan login.');
-                    toggleForm();
-                } else {
-                    alert('Gagal mendaftar');
-                }
-            } catch (err) {
-                alert('Error server');
-            }
-        });
 
         function showError(msg) {
             errorMsg.textContent = msg;

@@ -135,7 +135,6 @@ func main() {
 		}
 	})))
 	mux.Handle("/api/loans/return", middleware.AuthMiddleware(middleware.RequireRole("admin")(http.HandlerFunc(loanHandler.Return))))
-	mux.Handle("/api/loans/extend", middleware.AuthMiddleware(http.HandlerFunc(loanHandler.Extend)))
 
 	// Notification Routes
 	mux.Handle("/notifications", middleware.AuthMiddleware(http.HandlerFunc(notifHandler.ShowNotificationsPage)))

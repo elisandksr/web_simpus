@@ -495,7 +495,8 @@
                     </div>
 
                     <div style="display:flex; justify-content:end; gap:10px;">
-                        <button class="btn btn-primary" onclick="processReturn()">Konfirmasi & Kirim Notif</button>
+                        <button class="btn btn-primary" onclick="processReturn()"><i class="fas fa-check-circle"
+                                style="color: #FFD700;"></i> Konfirmasi & Kirim Notif</button>
                         <button class="btn btn-danger" onclick="toggleModal('returnModal', false)">Batal</button>
                     </div>
                     <input type="hidden" id="activeLoanId">
@@ -623,6 +624,12 @@
                     }
                 }
 
+                const statusMap = {
+                    'borrowed': 'Dipinjam',
+                    'returned': 'Dikembalikan'
+                };
+                const statusText = statusMap[l.status] || l.status;
+
                 return `
             <tr>
                 <td>
@@ -635,12 +642,12 @@
                     ${new Date(l.due_date).toLocaleDateString()}
                     ${daysLate > 0 && l.status === 'borrowed' ? `<span style="color:red; font-size:0.7rem">(${daysLate} hari telat)</span>` : ''}
                 </td>
-                <td><span class="badge ${l.status === 'returned' ? 'bg-success' : (l.status === 'borrowed' ? 'bg-warning' : 'bg-danger')}">${l.status}</span></td>
+                <td><span class="badge ${l.status === 'returned' ? 'bg-success' : (l.status === 'borrowed' ? 'bg-warning' : 'bg-danger')}">${statusText}</span></td>
                 <td>Rp ${fine.toLocaleString()}</td>
                 <td>
                     ${l.status === 'borrowed' ? `
-                        <button class="btn btn-success btn-sm" onclick="openReturnModal(${l.id}, '${l.due_date}')" title="Kembalikan"><i class="fas fa-check"></i></button>
-                        <button class="btn btn-primary btn-sm" onclick="extendLoan(${l.id})" title="Perpanjang"><i class="fas fa-history"></i></button>
+                        <button class="btn btn-success btn-sm" onclick="openReturnModal(${l.id}, '${l.due_date}')" title="Kembalikan"><i class="fas fa-clipboard-check"></i></button>
+
                     ` : '-'}
                 </td>
             </tr>
@@ -683,22 +690,7 @@
             }
         }
 
-        async function extendLoan(id) {
-            if (!confirm('Perpanjang peminjaman selama 7 hari?')) return;
-            const res = await fetch('/api/loans/extend', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ loan_id: id })
-            });
 
-            if (res.ok) {
-                alert('Berhasil diperpanjang!');
-                loadTrans();
-            } else {
-                const data = await res.json().catch(() => ({}));
-                alert('Gagal: ' + (data.error || 'Buku sudah overdue'));
-            }
-        }
     </script>
 </body>
 

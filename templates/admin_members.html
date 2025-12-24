@@ -264,6 +264,8 @@
             color: var(--text-main);
             transition: 0.2s;
             font-weight: 400;
+            margin-bottom: 5px;
+            /* Added small margin for tightness if not in grid */
         }
 
         input:focus,
@@ -373,6 +375,15 @@
 
         .modal.show .modal-content {
             transform: scale(1);
+        }
+
+        /* Compact Input Style for Modals */
+        .modal input,
+        .modal select {
+            padding: 8px 10px;
+            font-size: 0.9rem;
+            height: 40px;
+            /* Fixed height for uniformity */
         }
     </style>
 </head>
@@ -487,27 +498,25 @@
                     <h3>Edit Anggota</h3>
                     <form onsubmit="saveUser(event)">
                         <input type="hidden" id="userId">
-                        <div style="margin-bottom:15px;">
-                            <label>Nama Lengkap</label>
-                            <input id="uFullname" required>
-                        </div>
-                        <div style="margin-bottom:15px;">
-                            <label>NIP / NIM</label>
-                            <input id="uNip">
-                        </div>
-                        <div style="margin-bottom:15px;">
-                            <label>Kontak (HP/Email)</label>
-                            <input id="uContact">
-                        </div>
-                        <!-- Tipe Anggota field removed -->
-                        <div style="margin-bottom:20px;">
-                            <label>Role</label>
-                            <select id="uRole">
-                                <option value="mahasiswa">Mahasiswa</option>
-                                <option value="guru">Guru</option>
-                                <option value="karyawan">Karyawan</option>
-                                <option value="admin">Admin</option>
-                            </select>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                            <div>
+                                <input id="uFullname" placeholder="Nama Lengkap" required>
+                            </div>
+                            <div>
+                                <input id="uNip" placeholder="NIP / NIM">
+                            </div>
+                            <div>
+                                <input id="uContact" placeholder="Kontak (HP/Email)">
+                            </div>
+                            <div>
+                                <select id="uRole">
+                                    <option value="" disabled>Pilih Role</option>
+                                    <option value="mahasiswa">Mahasiswa</option>
+                                    <option value="guru">Guru</option>
+                                    <option value="karyawan">Karyawan</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div style="display:flex; justify-content:end; gap:10px;">
@@ -660,7 +669,7 @@
                 <td>
                     <button class="btn btn-warning btn-sm" onclick='editUser(${JSON.stringify(u)})' title="Edit"><i class="fas fa-edit"></i></button>
                     ${u.role !== 'admin' ? `<button class="btn btn-danger btn-sm" onclick="delUser('${u.id}')" title="Hapus"><i class="fas fa-trash"></i></button>` : ''}
-                    <button class="btn btn-info btn-sm" onclick="showSendNotif('${u.id}', '${u.username}')" title="Kirim Pesan" style="color:white;"><i class="fas fa-paper-plane"></i></button>
+                    ${u.role !== 'admin' ? `<button class="btn btn-sm" onclick="showSendNotif('${u.id}', '${u.username}')" title="Kirim Pesan" style="background-color: #0D6EFD; color:white; border:none;"><i class="fas fa-paper-plane"></i></button>` : ''}
                 </td>
             </tr>
         `).join('');

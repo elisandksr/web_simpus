@@ -213,8 +213,28 @@ func (s *MySQLStore) UpdateUser(user *models.User) error {
 }
 
 func (s *MySQLStore) DeleteUser(id string) error {
-	_, err := s.db.Exec("DELETE FROM users WHERE id=?", id)
-	return err
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// 1. Delete Notifications
+	if _, err := tx.Exec("DELETE FROM notifications WHERE user_id = ?", id); err != nil {
+		return fmt.Errorf("failed to delete notifications: %v", err)
+	}
+
+	// 2. Delete Loans (History)
+	if _, err := tx.Exec("DELETE FROM loans WHERE user_id = ?", id); err != nil {
+		return fmt.Errorf("failed to delete loans: %v", err)
+	}
+
+	// 3. Delete User
+	if _, err := tx.Exec("DELETE FROM users WHERE id=?", id); err != nil {
+		return fmt.Errorf("failed to delete user: %v", err)
+	}
+
+	return tx.Commit()
 }
 
 func (s *MySQLStore) SearchUsers(query string) ([]models.User, error) {
@@ -600,25 +620,6 @@ func (s *MySQLStore) GetLoansByUserID(userID string) ([]models.Loan, error) {
 		loans = append(loans, l)
 	}
 	return loans, nil
-}
-
-func (s *MySQLStore) ExtendLoan(loanID int) error {
-	var dueDate time.Time
-	var status string
-	err := s.db.QueryRow("SELECT due_date, status FROM loans WHERE id = ?", loanID).Scan(&dueDate, &status)
-	if err != nil {
-		return err
-	}
-	if status != "borrowed" {
-		return errors.New("cannot extend returned book")
-	}
-	if time.Now().After(dueDate) {
-		return errors.New("cannot extend overdue book")
-	}
-
-	newDueDate := dueDate.AddDate(0, 0, 7) // Add 7 days
-	_, err = s.db.Exec("UPDATE loans SET due_date = ? WHERE id = ?", newDueDate, loanID)
-	return err
 }
 
 func (s *MySQLStore) GetOverdueLoans(userID string) ([]models.Loan, error) {
