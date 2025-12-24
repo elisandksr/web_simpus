@@ -234,8 +234,8 @@
             <!-- MEMBER MENUS -->
             {{if ne .Role "admin"}}
             <li><a href="#" onclick="showSection('catalog', this)">📖 Katalog Buku</a></li>
-            <li><a href="#" onclick="showSection('my_loans', this)">📂 Peminjaman Saya</a></li>
-            <li><a href="#" onclick="showSection('profile', this)">👤 Profil Saya</a></li>
+            <li><a href="#" onclick="showSection('my_loans', this)">📂 Riwayat Peminjaman</a></li>
+            <li><a href="#" onclick="showSection('profile', this)">👤 Profil</a></li>
             {{end}}
 
             <li><a href="#" onclick="logout()">🚪 Logout</a></li>
@@ -366,7 +366,7 @@
         <!-- PEMINJAMAN SAYA -->
         <div id="my_loans" class="section">
             <div class="header">
-                <h2>Peminjaman Saya</h2>
+                <h2>Riwayat Peminjaman</h2>
             </div>
             <div class="card">
                 <table id="myLoansTable">

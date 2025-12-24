@@ -45,6 +45,11 @@ func render(w http.ResponseWriter, r *http.Request, tmplName string, title strin
 		"Role":       claims.Role,
 		"Title":      title,
 		"ActivePage": activePage,
+		"Subtitle":   "Selamat Datang di Sistem Manajemen Perpustakaan Terpadu",
+	}
+
+	if title == "Riwayat Peminjaman" {
+		data["Subtitle"] = "Riwayat Peminjaman"
 	}
 
 	// Use RenderTemplate for standalone files
@@ -124,7 +129,11 @@ func (h *PageHandler) ShowCatalog(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PageHandler) ShowMyLoans(w http.ResponseWriter, r *http.Request) {
-	render(w, r, "member_loans.html", "Peminjaman Saya", "loans")
+	title := "Peminjaman"
+	if r.URL.Query().Get("view") == "history" {
+		title = "Riwayat Peminjaman"
+	}
+	render(w, r, "member_loans.html", title, "loans")
 }
 
 func (h *PageHandler) ShowProfile(w http.ResponseWriter, r *http.Request) {
@@ -145,7 +154,7 @@ func (h *PageHandler) ShowProfile(w http.ResponseWriter, r *http.Request) {
 	data := map[string]interface{}{
 		"Username":   claims.Username,
 		"Role":       claims.Role,
-		"Title":      "Profil Saya",
+		"Title":      "Profil",
 		"ActivePage": "profile",
 		"User":       user,
 	}
