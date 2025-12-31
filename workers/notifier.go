@@ -57,13 +57,10 @@ func (n *Notifier) Check() {
 			fine := daysLate * finePerDay
 
 			msg := fmt.Sprintf("PERINGATAN: Buku '%s' terlambat %d hari. Denda sementara: Rp %d. Segera kembalikan!", bookTitle, daysLate, fine)
-			// Avoid spamming? Ideally yes, but per requirement "reminder notification".
-			// We'll send it. User might get one every day until returned.
+		
 			n.Store.CreateNotification(l.UserID, msg)
 		}
 
-		// Check Reminder (1 Day Before)
-		// DueDate - Now < 24h && DueDate > Now
 		durationUntilDue := l.DueDate.Sub(now)
 		if durationUntilDue > 0 && durationUntilDue < 24*time.Hour {
 			msg := fmt.Sprintf("PENGINGAT: Buku '%s' harus dikembalikan besok (%s).", bookTitle, l.DueDate.Format("02 Jan 2006"))

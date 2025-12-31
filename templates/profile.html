@@ -613,7 +613,7 @@
                 contact: document.getElementById('pContact').value
             };
 
-            const res = await fetch('/api/users/update', {
+            const res = await fetch('/api/profile/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(data)

@@ -20,7 +20,7 @@ func NewNotificationHandler(store *store.MySQLStore) *NotificationHandler {
 
 func (h *NotificationHandler) GetNotifications(w http.ResponseWriter, r *http.Request) {
 	v := r.Context().Value(middleware.UserCtxKey)
-	claims := v.(*utils.Claims) // Safely assume AuthMiddleware ran
+	claims := v.(*utils.Claims) 
 
 	user, err := h.Store.GetByUsername(claims.Username)
 	if err != nil {
