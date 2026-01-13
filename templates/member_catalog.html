@@ -452,6 +452,7 @@
 
         <div id="content-area">
             <div class="card" style="background:transparent; box-shadow:none; border:none; padding:0;">
+                <!-- Input Pencarian -->
                 <div style="margin-bottom:20px;">
                     <div style="position:relative; width:100%;">
                         <i class="fas fa-search"
@@ -461,12 +462,13 @@
                     </div>
                 </div>
 
+                <!-- Grid Katalog Buku -->
                 <div id="catGrid"
                     style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px;">
                 </div>
             </div>
 
-            <!-- Borrow Details Modal -->
+            <!-- Modal Detail Peminjaman -->
             <div id="borrowModal" class="modal">
                 <div class="modal-content" style="max-width:600px; padding:30px; border-radius:15px;">
                     <div style="border-bottom:1px solid #eee; padding-bottom:15px; margin-bottom:20px;">
@@ -631,6 +633,8 @@
     <script>
         let selectedBookId = null;
         loadCat();
+
+        // Fungsi memuat katalog buku
         async function loadCat() {
             const q = document.getElementById('catSearch').value;
             const res = await fetch(`/api/books?q=${q}`);
@@ -656,6 +660,7 @@
         `).join('');
         }
 
+        // Fungsi membuka modal peminjaman buku
         function openBorrowModal(book) {
             selectedBookId = book.id;
             document.getElementById('modalBookTitle').innerText = book.title;
@@ -680,6 +685,7 @@
             selectedBookId = null;
         }
 
+        // Fungsi konfirmasi peminjaman
         async function confirmBorrow() {
             if (!selectedBookId) return;
 
@@ -698,7 +704,7 @@
             if (res.ok) {
                 alert('Berhasil dipinjam! Cek menu Peminjaman.');
                 closeBorrowModal();
-                loadCat(); // Refresh stock
+                loadCat(); // Refresh stok
             } else {
                 const err = await res.text();
                 alert('Gagal meminjam: ' + err);

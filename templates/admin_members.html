@@ -470,9 +470,11 @@
                     </div>
                 </div>
 
+                <!-- Input Pencarian User -->
                 <input type="text" id="searchUser" placeholder="Cari nama/username..." onkeyup="loadUsers()"
                     style="width: 100%; margin-bottom: 20px;">
 
+                <!-- Tabel Data Anggota -->
                 <div style="overflow-x:auto;">
                     <table id="usersTable" style="width:100%; border-collapse:separate; border-spacing:0;">
                         <thead>
@@ -492,7 +494,7 @@
                 </div>
             </div>
 
-            <!-- Edit User Modal -->
+            <!-- Modal Edit Anggota -->
             <div id="userModal" class="modal">
                 <div class="modal-content">
                     <h3>Edit Anggota</h3>
@@ -528,7 +530,7 @@
                 </div>
             </div>
 
-            <!-- Send Notification Modal -->
+            <!-- Modal Kirim Notifikasi -->
             <div id="notifModal" class="modal">
                 <div class="modal-content">
                     <h3>Kirim Notifikasi</h3>
@@ -649,6 +651,7 @@
     <script>
         loadUsers();
 
+        // Fungsi load data user dari server
         async function loadUsers() {
             const q = document.getElementById('searchUser').value;
             const res = await fetch(`/api/users?q=${q}`, { headers: { 'Authorization': `Bearer ${token}` } });
@@ -675,6 +678,7 @@
         `).join('');
         }
 
+        // Fungsi mengisi form edit user
         function editUser(user) {
             document.getElementById('userId').value = user.id;
             document.getElementById('uFullname').value = user.fullname;
@@ -685,6 +689,7 @@
             toggleModal('userModal', true);
         }
 
+        // Fungsi menyimpan data user (termasuk ganti role)
         async function saveUser(e) {
             e.preventDefault();
             const data = {
@@ -711,6 +716,7 @@
             }
         }
 
+        // Fungsi menghapus user
         async function delUser(id) {
             if (!confirm('Hapus user ini selamanya?')) return;
             const res = await fetch(`/api/users/delete?id=${id}`, {
@@ -725,6 +731,7 @@
             }
         }
 
+        // Fungsi mengirim notifikasi pribadi
         function showSendNotif(id, username) {
             document.getElementById('notifUserId').value = id;
             document.getElementById('notifTargetUser').innerText = username;

@@ -11,21 +11,24 @@ type Notifier struct {
 	Store *store.MySQLStore
 }
 
+// NewNotifier membuat instance Notifier baru.
 func NewNotifier(store *store.MySQLStore) *Notifier {
 	return &Notifier{Store: store}
 }
 
+// Start memulai worker background yang berjalan setiap 24 jam.
 func (n *Notifier) Start() {
 	ticker := time.NewTicker(24 * time.Hour)
-	// Run immediately on start (or delay)
+	// Jalankan langsung saat mulai
 	go func() {
-		n.Check() // Initial check
+		n.Check() // Cek awal
 		for range ticker.C {
 			n.Check()
 		}
 	}()
 }
 
+// Check memeriksa buku yang terlambat dan mengirimkan notifikasi.
 func (n *Notifier) Check() {
 	log.Println("Worker: Checking for overdue books and reminders...")
 	loans, err := n.Store.GetAllBorrowedLoans()
@@ -48,7 +51,7 @@ func (n *Notifier) Check() {
 		}
 
 		now := time.Now()
-		// Check Overdue
+		// Cek Keterlambatan
 		if now.After(l.DueDate) {
 			daysLate := int(now.Sub(l.DueDate).Hours() / 24)
 			if daysLate < 1 {
@@ -57,7 +60,7 @@ func (n *Notifier) Check() {
 			fine := daysLate * finePerDay
 
 			msg := fmt.Sprintf("PERINGATAN: Buku '%s' terlambat %d hari. Denda sementara: Rp %d. Segera kembalikan!", bookTitle, daysLate, fine)
-		
+
 			n.Store.CreateNotification(l.UserID, msg)
 		}
 

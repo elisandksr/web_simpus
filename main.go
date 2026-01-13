@@ -11,10 +11,9 @@ import (
 	"time"
 )
 
+// function main adalah titik masuk aplikasi.
 func main() {
-	// ============================================
-	// DATABASE CONFIGURATION
-	// ============================================
+	// Konfigurasi Database
 	dbUser := os.Getenv("DB_USER")
 	if dbUser == "" {
 		dbUser = "root"
@@ -40,26 +39,25 @@ func main() {
 		dbName = "jwt_auth_db"
 	}
 
-	// DSN format: user:password@tcp(host:port)/dbname?parseTime=true
+	// Format DSN: user:password@tcp(host:port)/dbname?parseTime=true
 	dsn := dbUser + ":" + dbPass + "@tcp(" + dbHost + ":" + dbPort + ")/" + dbName + "?parseTime=true"
 
-	// Initialize MySQL store
+	// Inisialisasi koneksi MySQL
 	st, err := store.NewMySQLStore(dsn)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer st.Close()
 
-	// Initialize Schema (SIMPUS Tables)
+	// Inisialisasi Skema Database (Tabel SIMPUS)
 	if err := st.InitSchema(); err != nil {
 		log.Fatalf("Failed to upload schema: %v", err)
 	}
 
 	log.Println("✅ Successfully connected to MySQL database")
 
+	// Inisialisasi Handlers
 	// ============================================
-	// HANDLERS INITIALIZATION
-	// ============================================	// Init Handlers
 	// Init Handlers
 	authHandler := handlers.NewAuthHandler(st)
 	bookHandler := handlers.NewBookHandler(st)
@@ -69,24 +67,22 @@ func main() {
 	pageHandler := handlers.NewPageHandler(st)          // Inject store
 	notifHandler := handlers.NewNotificationHandler(st) // Init Notification Handler
 
-	// Start Background Worker
+	// Mulai Worker Background (untuk notifikasi denda otomatis)
 	notifier := workers.NewNotifier(st)
 	notifier.Start()
 
-	// ============================================
-	// ROUTES SETUP
-	// ============================================
+	// Pengaturan Routing
 	mux := http.NewServeMux()
 
 	// Static files
 	fs := http.FileServer(http.Dir("static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	// Uploads
+	// Folder Upload
 	up := http.FileServer(http.Dir("upload"))
 	mux.Handle("/upload/", http.StripPrefix("/upload/", up))
 
-	// Public Routes
+	// Route Halaman Publik
 	mux.HandleFunc("/", pageHandler.ShowLandingPage)
 	mux.HandleFunc("/login", pageHandler.ShowLoginPage)
 	mux.HandleFunc("/api/login", authHandler.Login) // distinct from page
@@ -95,7 +91,7 @@ func main() {
 
 	mux.Handle("/api/profile/update", middleware.AuthMiddleware(http.HandlerFunc(authHandler.UpdateSelf)))
 
-	// Protected Page Routes (UI)
+	// Route Halaman Terproteksi (UI)
 	// Common
 	mux.Handle("/dashboard", middleware.AuthMiddleware(http.HandlerFunc(pageHandler.ShowDashboard)))
 	mux.Handle("/profile", middleware.AuthMiddleware(http.HandlerFunc(pageHandler.ShowProfile)))
@@ -113,7 +109,7 @@ func main() {
 	mux.Handle("/catalog", middleware.AuthMiddleware(http.HandlerFunc(pageHandler.ShowCatalog)))
 	mux.Handle("/loans", middleware.AuthMiddleware(http.HandlerFunc(pageHandler.ShowMyLoans)))
 
-	// API Routes (JSON)
+	// Route API (JSON)
 	mux.Handle("/api/profile", middleware.AuthMiddleware(http.HandlerFunc(authHandler.Profile)))
 	mux.Handle("/api/users", middleware.AuthMiddleware(middleware.RequireRole("admin")(http.HandlerFunc(authHandler.GetUsers))))
 	mux.Handle("/api/users/update", middleware.AuthMiddleware(middleware.RequireRole("admin")(http.HandlerFunc(authHandler.UpdateUser))))
@@ -136,21 +132,17 @@ func main() {
 	})))
 	mux.Handle("/api/loans/return", middleware.AuthMiddleware(middleware.RequireRole("admin")(http.HandlerFunc(loanHandler.Return))))
 
-	// Notification Routes
+	// Route Notifikasi
 	mux.Handle("/notifications", middleware.AuthMiddleware(http.HandlerFunc(notifHandler.ShowNotificationsPage)))
 	mux.Handle("/api/notifications", middleware.AuthMiddleware(http.HandlerFunc(notifHandler.GetNotifications)))
 	mux.Handle("/api/notifications/read", middleware.AuthMiddleware(http.HandlerFunc(notifHandler.MarkRead)))
 	mux.Handle("/api/notifications/delete", middleware.AuthMiddleware(http.HandlerFunc(notifHandler.DeleteNotification)))
 	mux.Handle("/api/notifications/send", middleware.AuthMiddleware(middleware.RequireRole("admin")(http.HandlerFunc(notifHandler.SendNotification))))
 
-	// ============================================
-	// APPLY LOGGING MIDDLEWARE GLOBALLY
-	// ============================================
+	// Terapkan Middleware Logging secara Global
 	handler := middleware.Logging(mux)
 
-	// ============================================
-	// SERVER CONFIGURATION
-	// ============================================
+	// Konfigurasi Server
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

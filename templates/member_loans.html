@@ -464,6 +464,7 @@
                     </div>
                 </div>
 
+                <!-- Tabel Peminjaman -->
                 <div style="overflow-x:auto;">
                     <table id="loanTable" style="width:100%; border-collapse:separate; border-spacing:0;">
                         <thead>
@@ -581,29 +582,33 @@
     <script>
         loadLoans();
 
+        // Fungsi mengambil data peminjaman saya
         async function loadLoans() {
             const urlParams = new URLSearchParams(window.location.search);
+            // view=history menampilkan semua (termasuk yang dikembalikan)
+            // view=active hanya menampilkan yang sedang dipinjam
             const view = urlParams.get('view') || 'active';
 
             const res = await fetch('/api/loans?my=true', { headers: { 'Authorization': `Bearer ${token}` } });
             const loans = await res.json();
 
             // Client-side filter
-            // If view is history, show ALL loans (active + returned). If active, show only borrowed.
             const filtered = loans.filter(l => view === 'history' ? true : l.status !== 'returned');
 
+            // Render ke tabel
             document.getElementById('loanTable').querySelector('tbody').innerHTML = filtered.map(l => {
                 const due = new Date(l.due_date);
                 const now = new Date();
                 const isLate = l.status === 'borrowed' && now > due;
 
-                // Translate Status
+                // Terjemahan Status
                 const statusMap = {
                     'borrowed': 'Dipinjam',
                     'returned': 'Dikembalikan'
                 };
                 const statusText = statusMap[l.status] || l.status;
 
+                // Hitung denda jika telat
                 let denda = l.fine;
                 if (isLate) {
                     const days = Math.ceil((now - due) / (1000 * 60 * 60 * 24));

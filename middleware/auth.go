@@ -13,14 +13,12 @@ type ctxKey string
 
 const UserCtxKey ctxKey = "user"
 
-// ============================================
-// AuthMiddleware - Cek token dari Header ATAU Cookie
-// ============================================
+// AuthMiddleware mengelola autentikasi pengguna via token (Header/Cookie).
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var token string
 
-		// STEP 1: Coba ambil token dari Authorization Header
+		// Cek token di Header Authorization
 		auth := r.Header.Get("Authorization")
 		if auth != "" {
 			parts := strings.SplitN(auth, " ", 2)
@@ -30,7 +28,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			}
 		}
 
-		// STEP 2: Jika tidak ada di header, coba ambil dari Cookie
+		// Jika tidak ada header, cek Cookie
 		if token == "" {
 			cookie, err := r.Cookie("token")
 			if err == nil {
@@ -39,22 +37,21 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			}
 		}
 
-		// STEP 3: Jika masih tidak ada token, return error atau redirect
+		// Jika token kosong, tangani error atau redirect
 		if token == "" {
-			// Check if it's an API request or expects JSON
 			if strings.HasPrefix(r.URL.Path, "/api") || strings.Contains(r.Header.Get("Accept"), "application/json") {
 				log.Println("No token found for API request")
 				http.Error(w, "missing Authorization header or token cookie", http.StatusUnauthorized)
 				return
 			}
 
-			// If it's a page request, redirect to login
+			// Redirect ke login jika bukan API
 			log.Println("No token found, redirecting to login")
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
 
-		// STEP 4: Parse dan validate token
+		// Validasi token JWT
 		claims, err := utils.ParseToken(token)
 		if err != nil {
 			log.Println("Invalid token:", err.Error())
@@ -64,15 +61,13 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		log.Println("Token valid! Username:", claims.Username, "Role:", claims.Role)
 
-		// STEP 5: Simpan claims di context
+		// Simpan data user (claims) ke context
 		ctx := context.WithValue(r.Context(), UserCtxKey, claims)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-// ============================================
-// RequireRole - Middleware untuk cek role
-// ============================================
+// RequireRole memvalidasi peran pengguna sebelum akses diizinkan.
 func RequireRole(role string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

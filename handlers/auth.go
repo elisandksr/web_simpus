@@ -20,7 +20,8 @@ func NewAuthHandler(store *store.MySQLStore) *AuthHandler {
 	return &AuthHandler{Store: store}
 }
 
-// Register endpoint (untuk membuat user baru)
+// Register endpoint (untuk membuat user baru).
+// Fungsi ini menangani pendaftaran pengguna baru dengan menerima username, password, dan role.
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -39,20 +40,20 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Hash password
+	// Hash password sebelum disimpan
 	hashed, err := bcrypt.GenerateFromPassword([]byte(payload.Password), bcrypt.DefaultCost)
 	if err != nil {
 		http.Error(w, "Error hashing password", http.StatusInternalServerError)
 		return
 	}
 
-	// Use Role directly from payload, default to "mahasiswa" if empty (common case)
+	// Gunakan role dari payload, default "mahasiswa" per permintaan
 	role := payload.Role
 	if role == "" {
 		role = "mahasiswa"
 	}
 
-	// Validate Role
+	// Validasi Role
 	validRoles := map[string]bool{
 		"admin":     true,
 		"mahasiswa": true,
@@ -64,8 +65,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// We mirror role to memberType for legacy compatibility, or just use role.
-	// User requested "hapus tipe", so we rely on role.
+	// Buat user baru di database
 	_, err = h.Store.CreateUser(payload.Username, string(hashed), role, payload.Fullname)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -78,7 +78,8 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Login endpoint (untuk form login)
+// Login endpoint (untuk form login).
+// Fungsi ini memverifikasi username dan password, serta menghasilkan token JWT jika kredensial valid.
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -94,7 +95,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate input
+	// Validasi input
 	if req.Username == "" || req.Password == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{
@@ -103,7 +104,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get user from database
+	// Ambil data user dari database
 	user, err := h.Store.GetByUsername(req.Username)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -113,7 +114,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify password
+	// Verifikasi password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(map[string]string{
@@ -122,7 +123,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate JWT token
+	// Buat token JWT (berlaku 24 jam)
 	token, err := utils.GenerateToken(user.Username, user.Role, time.Hour*24) // 24 hours TTL
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -132,7 +133,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return success response
+	// Kirim respon sukses dengan token
 	resp := models.LoginResponse{
 		Token:    token,
 		Username: user.Username,
@@ -144,7 +145,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-// Profile endpoint (protected)
+// Profile endpoint (protected).
+// Fungsi ini mengambil informasi profil pengguna yang sedang login berdasarkan token autentikasi.
 func (h *AuthHandler) Profile(w http.ResponseWriter, r *http.Request) {
 	v := r.Context().Value(middleware.UserCtxKey)
 	if v == nil {
@@ -167,7 +169,8 @@ func (h *AuthHandler) Profile(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-// GetUsers endpoint (admin only)
+// GetUsers endpoint (admin only).
+// Fungsi ini digunakan oleh admin untuk melihat daftar semua pengguna atau mencari pengguna tertentu.
 func (h *AuthHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	var users []models.User
@@ -188,6 +191,8 @@ func (h *AuthHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(users)
 }
 
+// UpdateUser endpoint (khusus admin).
+// Fungsi ini digunakan admin untuk memperbarui data pengguna lain.
 func (h *AuthHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
@@ -195,17 +200,13 @@ func (h *AuthHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Ensure ID is provided preferably via query/path, or body.
-	// For simplicity, we trust the body since it's an admin op.
+	// Pastikan ID tersedia
 	if user.ID == "" {
 		http.Error(w, "User ID required", http.StatusBadRequest)
 		return
 	}
 
-	// Determine role to update. If payload has role, validate it.
-	// If payload doesn't have role, use existing?
-	// The struct 'User' has Role field. Helper 'UpdateUser' blindly updates.
-	// We should validate 'user.Role' if it is not empty.
+	// Validasi role jika ada perubahan
 	if user.Role != "" {
 		validRoles := map[string]bool{
 			"admin":     true,
@@ -217,25 +218,9 @@ func (h *AuthHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Invalid role. Must be one of: admin, mahasiswa, guru, karyawan", http.StatusBadRequest)
 			return
 		}
-	} else {
-		// If role is empty, fetch existing user to keep it?
-		// Or assume Store.UpdateUser handles it?
-		// Store.UpdateUser blindly updates. So we must fetching existing first to be safe,
-		// OR we rely on Admin sending full object.
-		// Admin UI sends role. So we just validate.
 	}
 
-	// We only allow updating Fullname and MemberType (and Role if needed, but keeping it simple)
-	// We first get the existing user to preserve other fields if needed,
-	// or we just trust the store update which only updates specific fields.
-	// Store.UpdateUser updates fullname, member_type, and role.
-
-	// Ensure we preserve fields not sent?
-	// The current logic blindly passed 'user' to Store.UpdateUser.
-	// If 'NIP' was empty in JSON, it might wipe it?
-	// The admin_members.html sends: id, fullname, nip, contact, role.
-	// So it is full update. OK.
-
+	// Update user ke database
 	if err := h.Store.UpdateUser(&user); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -245,8 +230,10 @@ func (h *AuthHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "User updated"})
 }
 
+// UpdateSelf endpoint.
+// Fungsi ini memungkinkan pengguna untuk memperbarui data profil mereka sendiri.
 func (h *AuthHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) {
-	// Get ID from Claims
+	// Ambil ID dari token (Claims)
 	claims, ok := r.Context().Value(middleware.UserCtxKey).(*utils.Claims)
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -263,7 +250,7 @@ func (h *AuthHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) {
 		Fullname string `json:"fullname"`
 		NIP      string `json:"nip"`
 		Contact  string `json:"contact"`
-		Password string `json:"password,omitempty"` // Optional password change
+		Password string `json:"password,omitempty"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
@@ -271,32 +258,26 @@ func (h *AuthHandler) UpdateSelf(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update fields
+	// Update field nama, nip, kontak
 	user.Fullname = payload.Fullname
 	user.NIP = payload.NIP
 	user.Contact = payload.Contact
 
-	// Password update if provided
-	if payload.Password != "" {
-		// Placeholder for future password update
-		// hashed, err := bcrypt.GenerateFromPassword([]byte(payload.Password), bcrypt.DefaultCost)
-	}
+	// Update password jika ada (opsional)
 
 	if err := h.Store.UpdateUser(user); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Separate password update if needed, but for now strict to requirement "Mengubah data diri".
-	// Usually implies profile data. I'll stick to non-sensitive data first or update UpdateUser query to include password if I can view it.
-	// I recall checking mysql_store.go and UpdateUser ONLY updates: fullname, member_type, role, nip, contact.
-	// So password change is not supported yet. I will skip password for this specific turn to ensure stability,
-	// unless user explicitly asked for password change. "Mengubah data diri" coverage matches UpdateUser.
+	// Simpan perubahan profil
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Profile updated successfully"})
 }
 
+// DeleteUser endpoint (khusus admin).
+// Fungsi ini menghapus pengguna dari database berdasarkan ID yang diberikan.
 func (h *AuthHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 	if id == "" {

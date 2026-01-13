@@ -452,12 +452,13 @@
         </header>
 
         <div id="content-area">
+            <!-- Konten Utama Halaman Akan Dirender Disini -->
             {{template "content" .}}
         </div>
     </div>
 
     <script>
-        // Global Helpers
+        // Helper Global: Token & Logout
         const token = getCookie('token');
         function getCookie(name) {
             const v = `; ${document.cookie}`;
@@ -485,7 +486,7 @@
             }
         }
 
-        // Notification Logic
+        // Logika Notifikasi Global (Polling)
         async function checkNotifs() {
             try {
                 const res = await fetch('/api/notifications', { headers: { 'Authorization': `Bearer ${token}` } });
@@ -501,7 +502,7 @@
                     badge.style.display = 'none';
                 }
 
-                // Render list
+                // Render list (Dropdown)
                 const list = document.getElementById('notif-list');
                 if (notifs.length === 0) {
                     list.innerHTML = '<div style="padding:15px; text-align:center; color:#999">Tidak ada notifikasi</div>';

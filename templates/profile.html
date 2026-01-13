@@ -452,11 +452,14 @@
 
         <div id="content-area">
             <div class="card">
+                <!-- Header Kartu -->
                 <div style="border-bottom:1px solid #eee; padding-bottom:15px; margin-bottom:20px;">
                     <h3 style="margin:0">Informasi Akun</h3>
                     <p style="color:var(--text-light); margin-top:5px;">Perbarui informasi pribadi dan kontak Anda.</p>
                 </div>
 
+                <!-- Form Update Profil -->
+                <!-- Mengirim data ke javascript updateProfile saat disubmit -->
                 <form onsubmit="updateProfile(event)">
                     <input type="hidden" id="userId" value="{{.User.ID}}">
 
@@ -604,8 +607,11 @@
         }
     </script>
     <script>
+        // Fungsi untuk mengupdate profil pengguna
         async function updateProfile(e) {
-            e.preventDefault();
+            e.preventDefault(); // Mencegah reload halaman
+
+            // Mengambil data dari form
             const data = {
                 id: document.getElementById('userId').value,
                 fullname: document.getElementById('pFullname').value,
@@ -613,12 +619,14 @@
                 contact: document.getElementById('pContact').value
             };
 
+            // Mengirim data ke server
             const res = await fetch('/api/profile/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(data)
             });
 
+            // Menangani respon server
             if (res.ok) {
                 alert('Profil berhasil diperbarui');
                 window.location.reload();

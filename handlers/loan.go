@@ -19,8 +19,10 @@ func NewLoanHandler(store *store.MySQLStore) *LoanHandler {
 	return &LoanHandler{Store: store}
 }
 
+// Borrow endpoint.
+// Menangani proses peminjaman buku oleh pengguna.
 func (h *LoanHandler) Borrow(w http.ResponseWriter, r *http.Request) {
-	// Get User ID
+	// Ambil ID pengguna dari token
 	claims, ok := r.Context().Value(middleware.UserCtxKey).(*utils.Claims)
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -32,10 +34,10 @@ func (h *LoanHandler) Borrow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// CHECK MAX LOANS
+	// Cek batasan jumlah pinjaman
 	settings, err := h.Store.GetSettings()
 	if err != nil {
-		// Fallback if settings fail
+		// Gunakan default jika setting gagal dimuat
 		settings = &models.Settings{MaxLoanBooks: 3}
 	}
 
@@ -63,13 +65,12 @@ func (h *LoanHandler) Borrow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Duration Validation
+	// Validasi durasi pinjaman
 	duration := payload.Duration
 	if duration <= 0 {
-		duration = settings.LoanDuration // Default if 0
+		duration = settings.LoanDuration // Default dari setting
 	}
-	// Optional: Enforce Max Duration from Settings if we consider 'LoanDuration' as Max
-	// For now, let's treat Settings.LoanDuration as the standard limit.
+	// Pastikan durasi tidak melebihi batas maksimal
 	if duration > settings.LoanDuration {
 		http.Error(w, fmt.Sprintf("Durasi maksimal peminjaman adalah %d hari", settings.LoanDuration), http.StatusBadRequest)
 		return
@@ -89,8 +90,8 @@ func (h *LoanHandler) Borrow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// NOTIFICATION
-	// Fetch book title
+	// Buat notifikasi peminjaman
+	// Ambil judul buku
 	book, _ := h.Store.GetBookByID(payload.BookID)
 	title := "Buku"
 	if book != nil {
@@ -103,9 +104,10 @@ func (h *LoanHandler) Borrow(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(loan)
 }
 
+// Return endpoint (khusus admin).
+// Menangani pengembalian buku dan perhitungan denda.
 func (h *LoanHandler) Return(w http.ResponseWriter, r *http.Request) {
-	// Admin only usually, or user if allowed. Requirement says "Manajemen .. Peminjaman & pengembalian".
-	// Let's assume Admin handles return.
+	// Proses pengembalian buku (biasanya oleh admin)
 	var payload struct {
 		LoanID int `json:"loan_id"`
 	}
@@ -120,9 +122,8 @@ func (h *LoanHandler) Return(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// NOTIFICATION
-	// Need to fetch book title again because ReturnBook only gives IDs in the struct usually (unless we joined, but we simple queried)
-	// We can add title to ReturnBook return or just fetch it here.
+	// Buat notifikasi pengembalian
+	// Ambil judul buku untuk pesan notifikasi
 	book, _ := h.Store.GetBookByID(loan.BookID)
 	title := "Buku"
 	if book != nil {
@@ -135,6 +136,8 @@ func (h *LoanHandler) Return(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "Book returned successfully"})
 }
 
+// ListLoans endpoint.
+// Menampilkan daftar peminjaman (semua untuk admin, milik sendiri untuk user).
 func (h *LoanHandler) ListLoans(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value(middleware.UserCtxKey).(*utils.Claims)
 	if !ok {
@@ -155,20 +158,18 @@ func (h *LoanHandler) ListLoans(w http.ResponseWriter, r *http.Request) {
 			end, err2 := time.Parse(layout, endDateStr)
 
 			if err1 == nil && err2 == nil {
-				// Adjust end date to end of day
+				// Set waktu akhir ke penghujung hari
 				end = end.Add(23*time.Hour + 59*time.Minute + 59*time.Second)
 				loans, err = h.Store.GetLoansFiltered(start, end)
 			} else {
-				// Fallback or bad request? Let's just return all or error.
-				// For robustness, let's fallback to current month or just error.
-				// Let's fallback to all loans but maybe invalid date format.
+				// Jika format tanggal salah, ambil semua data
 				loans, err = h.Store.GetAllLoans()
 			}
 		} else {
 			loans, err = h.Store.GetAllLoans()
 		}
 	} else {
-		// Get User ID
+		// Ambil data user dahulu
 		user, uErr := h.Store.GetByUsername(claims.Username)
 		if uErr != nil {
 			http.Error(w, "User error", http.StatusInternalServerError)

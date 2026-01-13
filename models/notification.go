@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+// Notification merepresentasikan data notifikasi sistem.
 type Notification struct {
 	ID        int       `json:"id" db:"id"`
 	UserID    string    `json:"user_id" db:"user_id"`

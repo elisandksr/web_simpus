@@ -14,14 +14,16 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
+// jwtSecret mengambil secret key dari environment variable.
 func jwtSecret() []byte {
 	s := os.Getenv("JWT_SECRET")
 	if s == "" {
-		s = "dev_secret_change_me" // hanya untuk latihan
+		s = "dev_secret_change_me" // Key default untuk development
 	}
 	return []byte(s)
 }
 
+// GenerateToken membuat token JWT baru untuk user.
 func GenerateToken(username, role string, ttl time.Duration) (string, error) {
 	now := time.Now()
 
@@ -41,6 +43,7 @@ func GenerateToken(username, role string, ttl time.Duration) (string, error) {
 	return token.SignedString(jwtSecret())
 }
 
+// ParseToken mevalidasi dan mengambil data dari token JWT.
 func ParseToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{},
 		func(token *jwt.Token) (interface{}, error) {

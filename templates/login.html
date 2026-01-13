@@ -265,7 +265,9 @@
         <h1 id="title">Login SIMPUS</h1>
         <p>Sistem Informasi Manajemen Perpustakaan</p>
 
-        <!-- LOGIN FORM -->
+        <!-- FORM LOGIN -->
+        <!-- Ini adalah form untuk pengguna memasukkan username dan password -->
+        <!-- Form mengirimkan data ke javascript untuk diproses -->
         <form id="loginForm">
             <div class="form-group">
                 <label>Username</label>
@@ -284,35 +286,50 @@
     </div>
 
     <script>
+        // Mengambil elemen form login, judul, dan pesan error dari HTML
         const loginForm = document.getElementById('loginForm');
         const title = document.getElementById('title');
         const errorMsg = document.getElementById('error-msg');
 
+        // Fungsi ini berjalan ketika tombol "Masuk Sekarang" ditekan
         loginForm.addEventListener('submit', async (e) => {
+            // Mencegah halaman refresh otomatis saat form disubmit
             e.preventDefault();
+
+            // Mengambil nilai username dan password yang diinputkan pengguna
             const username = document.getElementById('loginUser').value;
             const password = document.getElementById('loginPass').value;
 
             try {
+                // Mengirim data login ke server (backend) menggunakan API /api/login
                 const res = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
+
+                // Mengubah respon server menjadi format JSON
                 const data = await res.json();
+
+                // Jika login berhasil
                 if (res.ok) {
+                    // Simpan token login ke browser cookie
                     document.cookie = `token=${data.token}; path=/; max-age=86400`;
+                    // Arahkan pengguna ke halaman dashboard
                     window.location.href = '/dashboard';
                 } else {
+                    // Jika login gagal, tampilkan pesan error
                     showError(data.error);
                 }
             } catch (err) {
+                // Jika terjadi kesalahan koneksi
                 showError("Gagal menghubungi server");
             }
         });
 
 
 
+        // Fungsi untuk menampilkan pesan error di layar
         function showError(msg) {
             errorMsg.textContent = msg;
             errorMsg.style.display = 'block';

@@ -374,6 +374,30 @@
         .modal.show .modal-content {
             transform: scale(1);
         }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            .card,
+            .card * {
+                visibility: visible;
+            }
+
+            .card {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                border: none;
+                box-shadow: none;
+            }
+
+            .btn {
+                display: none;
+            }
+        }
     </style>
 </head>
 
@@ -457,10 +481,12 @@
                         <h3 style="margin:0">Riwayat Transaksi</h3>
                         <p style="color:var(--text-light)">Kelola peminjaman dan pengembalian buku.</p>
                     </div>
+                    <!-- Tombol Cetak Transaksi -->
                     <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Cetak
-                        Laporan</button>
+                        Transaksi</button>
                 </div>
 
+                <!-- Tabel Riwayat Transaksi -->
                 <div style="overflow-x:auto;">
                     <table id="transTable" style="width:100%; border-collapse:separate; border-spacing:0;">
                         <thead>
@@ -480,7 +506,7 @@
                 </div>
             </div>
 
-            <!-- Return Modal -->
+            <!-- Modal Konfirmasi Pengembalian -->
             <div id="returnModal" class="modal">
                 <div class="modal-content">
                     <h3>Konfirmasi Pengembalian</h3>
@@ -604,12 +630,13 @@
         loadTrans();
         const FINE_PER_DAY = 5000;
 
+        // Fungsi mengambil data transaksi dari server
         async function loadTrans() {
             const res = await fetch('/api/loans', { headers: { 'Authorization': `Bearer ${token}` } });
             const loans = await res.json();
 
             document.getElementById('transTable').querySelector('tbody').innerHTML = loans.map(l => {
-                // Calculate fine estimation client-side for display
+                // Hitung estimasi denda di client-side untuk tampilan
                 let fine = l.fine;
                 let daysLate = 0;
                 if (l.status === 'borrowed') {
@@ -655,6 +682,7 @@
             }).join('');
         }
 
+        // Fungsi membuka modal konfirmasi pengembalian
         function openReturnModal(id, dueDateStr) {
             document.getElementById('activeLoanId').value = id;
 
@@ -675,6 +703,7 @@
             toggleModal('returnModal', true);
         }
 
+        // Fungsi memproses pengembalian buku
         async function processReturn() {
             const id = document.getElementById('activeLoanId').value;
             const res = await fetch('/api/loans/return', {

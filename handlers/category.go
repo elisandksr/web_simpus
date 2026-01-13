@@ -15,6 +15,8 @@ func NewCategoryHandler(store *store.MySQLStore) *CategoryHandler {
 	return &CategoryHandler{Store: store}
 }
 
+// GetCategories endpoint.
+// Mengambil daftar semua kategori buku.
 func (h *CategoryHandler) GetCategories(w http.ResponseWriter, r *http.Request) {
 	cats, err := h.Store.GetAllCategories()
 	if err != nil {
@@ -25,6 +27,8 @@ func (h *CategoryHandler) GetCategories(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(cats)
 }
 
+// CreateCategory endpoint (khusus admin).
+// Menambahkan kategori baru.
 func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request) {
 	var payload struct {
 		Name string `json:"name"`
@@ -48,6 +52,8 @@ func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Category created"})
 }
 
+// DeleteCategory endpoint (khusus admin).
+// Menghapus kategori berdasarkan ID.
 func (h *CategoryHandler) DeleteCategory(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)

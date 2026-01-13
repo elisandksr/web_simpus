@@ -457,15 +457,18 @@
                         <h3 style="margin:0">Manajemen Buku</h3>
                         <p style="color:var(--text-light)">Kelola koleksi buku perpustakaan.</p>
                     </div>
+                    <!-- Tombol Tambah Buku -->
                     <div style="display:flex; gap:10px;">
                         <button class="btn btn-primary" onclick="openModal('add')"><i class="fas fa-plus"></i> Tambah
                             Buku</button>
                     </div>
                 </div>
 
+                <!-- Input Pencarian -->
                 <input type="text" id="searchInput" placeholder="Cari buku..." onkeyup="loadBooks()"
                     style="width: 100%; margin-bottom: 20px;">
 
+                <!-- Tabel Data Buku -->
                 <div style="overflow-x:auto;">
                     <table id="booksTable" style="width:100%; border-collapse:separate; border-spacing:0;">
                         <thead>
@@ -485,7 +488,7 @@
                 </div>
             </div>
 
-            <!-- Book Modal -->
+            <!-- Modal Tambah/Edit Buku -->
             <div id="bookModal" class="modal">
                 <div class="modal-content">
                     <h3 id="modalTitle">Tambah Buku</h3>
@@ -620,11 +623,13 @@
         loadBooks();
         loadCategories();
 
+        // Fungsi mengambil data buku dari server
         async function loadBooks() {
             const q = document.getElementById('searchInput').value;
             const res = await fetch(`/api/books?q=${q}`);
             const books = await res.json();
 
+            // Render tabel dengan data buku
             document.getElementById('booksTable').querySelector('tbody').innerHTML = books.map(b => `
             <tr>
                 <td style="width:60px;">
@@ -658,12 +663,14 @@
             }
         }
 
+        // Fungsi membuka modal tambah buku
         function openModal(mode) {
             document.getElementById('modalTitle').innerText = 'Tambah Buku';
+            // Reset form
             document.getElementById('bookId').value = '';
             document.getElementById('bTitle').value = '';
             document.getElementById('bAuthor').value = '';
-            document.getElementById('bCat').value = ''; // Will select default
+            document.getElementById('bCat').value = '';
             document.getElementById('bYear').value = '';
             document.getElementById('bStock').value = '';
             document.getElementById('bImgFile').value = '';
@@ -671,8 +678,10 @@
             toggleModal('bookModal', true);
         }
 
+        // Fungsi membuka modal edit buku
         function editBook(book) {
             document.getElementById('modalTitle').innerText = 'Edit Buku';
+            // Isi form dengan data buku yang dipilih
             document.getElementById('bookId').value = book.id;
             document.getElementById('bTitle').value = book.title;
             document.getElementById('bAuthor').value = book.author;
@@ -685,6 +694,7 @@
             toggleModal('bookModal', true);
         }
 
+        // Fungsi menyimpan buku (tambah atau update)
         async function saveBook(e) {
             e.preventDefault();
             const id = document.getElementById('bookId').value;
@@ -695,7 +705,7 @@
             const stock = document.getElementById('bStock').value;
             const fileInput = document.getElementById('bImgFile');
 
-            // Unified FormData for both Create and Update
+            // Menggunakan FormData untuk support upload file gambar
             const formData = new FormData();
             formData.append("title", title);
             formData.append("author", author);
@@ -707,14 +717,14 @@
             }
 
             if (id) {
-                // Update (Multipart)
+                // Update Buku
                 await fetch(`/api/books/update?id=${id}`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` }, // No content-type for FormData
                     body: formData
                 });
             } else {
-                // Create (Multipart)
+                // Buat Buku Baru
                 await fetch('/api/books/create', {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` },
@@ -723,9 +733,10 @@
             }
 
             toggleModal('bookModal', false);
-            loadBooks();
+            loadBooks(); // Reload tabel
         }
 
+        // Fungsi menghapus buku
         async function delBook(id) {
             if (!confirm('Hapus buku?')) return;
             await fetch(`/api/books/delete?id=${id}`, {

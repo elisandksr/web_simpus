@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+// Loan merepresentasikan data peminjaman buku.
 type Loan struct {
 	ID         int        `json:"id" db:"id"`
 	UserID     string     `json:"user_id" db:"user_id"`
@@ -10,12 +11,13 @@ type Loan struct {
 	Book       *Book      `json:"book,omitempty"`
 	LoanDate   time.Time  `json:"loan_date" db:"loan_date"`
 	DueDate    time.Time  `json:"due_date" db:"due_date"`
-	ReturnDate *time.Time `json:"return_date" db:"return_date"` // Nullable
-	Status     string     `json:"status" db:"status"`           // "borrowed", "returned", "late"
+	ReturnDate *time.Time `json:"return_date" db:"return_date"`
+	Status     string     `json:"status" db:"status"` // "borrowed", "returned", "late"
 	Fine       int        `json:"fine" db:"fine"`
 }
 
+// LoanRequest adalah payload untuk membuat peminjaman baru.
 type LoanRequest struct {
 	BookID   int `json:"book_id"`
-	Duration int `json:"duration"` // Requested loan duration in days
+	Duration int `json:"duration"` // Durasi pinjam (hari)
 }

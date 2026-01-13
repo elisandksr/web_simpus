@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 )
 
-// RenderTemplate renders a template with the given data.
-// It assumes templates are located in the "templates" directory.
+// RenderTemplate merender template HTML dengan data yang diberikan.
+// Fungsi ini berasumsi file template berada di direktori "templates".
 func RenderTemplate(w http.ResponseWriter, tmplName string, data interface{}) {
 	tmplPath := filepath.Join("templates", tmplName)
 
@@ -26,7 +26,7 @@ func RenderTemplate(w http.ResponseWriter, tmplName string, data interface{}) {
 	}
 }
 
-// RenderWithLayout renders a template wrapped in a layout.
+// RenderWithLayout merender template yang dibungkus dalam layout utama.
 func RenderWithLayout(w http.ResponseWriter, tmplName string, data interface{}) {
 	tmpl, err := template.ParseFiles("templates/layout.html", "templates/"+tmplName)
 	if err != nil {

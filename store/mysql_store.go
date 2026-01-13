@@ -23,6 +23,8 @@ type MySQLStore struct {
 	db *sql.DB
 }
 
+// NewMySQLStore menginisialisasi koneksi database MySQL baru.
+// Fungsi ini membuka koneksi dan melakukan ping untuk memastikan database aktif.
 func NewMySQLStore(dsn string) (*MySQLStore, error) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
@@ -36,10 +38,13 @@ func NewMySQLStore(dsn string) (*MySQLStore, error) {
 	return &MySQLStore{db: db}, nil
 }
 
+// Close menutup koneksi database.
 func (s *MySQLStore) Close() error {
 	return s.db.Close()
 }
 
+// InitSchema membuat tabel-tabel database jika belum ada.
+// Tabel meliputi: users, books, loans, categories, settings, notifications.
 func (s *MySQLStore) InitSchema() error {
 	queries := []string{
 		`CREATE TABLE IF NOT EXISTS users (
@@ -100,7 +105,7 @@ func (s *MySQLStore) InitSchema() error {
 		}
 	}
 
-	// Migrations for existing tables
+	// Migrasi untuk tabel yang sudah ada (menambah kolom baru dsb)
 	s.db.Exec("ALTER TABLE users DROP COLUMN member_type") // Explicitly remove member_type
 	s.db.Exec("ALTER TABLE users ADD COLUMN fullname VARCHAR(255)")
 	s.db.Exec("ALTER TABLE users ADD COLUMN fullname VARCHAR(255)")
@@ -112,7 +117,7 @@ func (s *MySQLStore) InitSchema() error {
 	s.db.Exec("ALTER TABLE books ADD COLUMN image_url VARCHAR(255)")
 	s.db.Exec("ALTER TABLE books ADD COLUMN published_year INT")
 
-	// Insert default settings if not exists
+	// Masukkan pengaturan default jika belum ada
 	var settingsCount int
 	s.db.QueryRow("SELECT COUNT(*) FROM settings").Scan(&settingsCount)
 	if settingsCount == 0 {
@@ -126,6 +131,8 @@ func (s *MySQLStore) InitSchema() error {
 // USER
 // ==========================================
 
+// CreateUser menambahkan pengguna baru ke database.
+// Melakukan pengecekan duplikasi username sebelum insert.
 func (s *MySQLStore) CreateUser(username, hashedPassword, role, fullname string) (*models.User, error) {
 	// Check if user exists
 	var count int
@@ -159,6 +166,7 @@ func (s *MySQLStore) CreateUser(username, hashedPassword, role, fullname string)
 	}, nil
 }
 
+// GetByUsername mencari pengguna berdasarkan username.
 func (s *MySQLStore) GetByUsername(username string) (*models.User, error) {
 	user := &models.User{}
 	var fullname, nip, contact sql.NullString // Handle potential nulls
@@ -180,6 +188,7 @@ func (s *MySQLStore) GetByUsername(username string) (*models.User, error) {
 	return user, nil
 }
 
+// GetAllUsers mengambil semua data pengguna.
 func (s *MySQLStore) GetAllUsers() ([]models.User, error) {
 	rows, err := s.db.Query("SELECT id, username, role, fullname, nip, contact, created_at FROM users")
 	if err != nil {
@@ -206,12 +215,14 @@ func (s *MySQLStore) GetAllUsers() ([]models.User, error) {
 // USER
 // ==========================================
 
+// UpdateUser memperbarui data pengguna (nama, role, NIP, kontak).
 func (s *MySQLStore) UpdateUser(user *models.User) error {
 	_, err := s.db.Exec("UPDATE users SET fullname=?, role=?, nip=?, contact=? WHERE id=?",
 		user.Fullname, user.Role, user.NIP, user.Contact, user.ID)
 	return err
 }
 
+// DeleteUser menghapus data pengguna beserta data terkait (notifikasi, histori pinjaman).
 func (s *MySQLStore) DeleteUser(id string) error {
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -237,6 +248,7 @@ func (s *MySQLStore) DeleteUser(id string) error {
 	return tx.Commit()
 }
 
+// SearchUsers mencari pengguna berdasarkan username, nama lengkap, atau NIP.
 func (s *MySQLStore) SearchUsers(query string) ([]models.User, error) {
 	q := "%" + query + "%"
 	// Also search by NIP or Contact? Let's check Name, Username, NIP.
@@ -267,6 +279,7 @@ func (s *MySQLStore) SearchUsers(query string) ([]models.User, error) {
 // BOOKS
 // ==========================================
 
+// SearchBooks mencari buku berdasarkan judul, penulis, atau kategori.
 func (s *MySQLStore) SearchBooks(query string) ([]models.Book, error) {
 	q := "%" + query + "%"
 	rows, err := s.db.Query("SELECT id, title, author, category, stock, image_url, published_year, created_at FROM books WHERE title LIKE ? OR author LIKE ? OR category LIKE ? ORDER BY created_at DESC", q, q, q)
@@ -290,6 +303,7 @@ func (s *MySQLStore) SearchBooks(query string) ([]models.Book, error) {
 	return books, nil
 }
 
+// CreateBook menambahkan buku baru ke database.
 func (s *MySQLStore) CreateBook(book *models.Book) error {
 	res, err := s.db.Exec("INSERT INTO books (title, author, category, stock, image_url, published_year, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
 		book.Title, book.Author, book.Category, book.Stock, book.ImageURL, book.PublishedYear, time.Now())
@@ -301,6 +315,7 @@ func (s *MySQLStore) CreateBook(book *models.Book) error {
 	return nil
 }
 
+// GetAllBooks mengambil semua daftar buku diurutkan dari yang terbaru.
 func (s *MySQLStore) GetAllBooks() ([]models.Book, error) {
 	rows, err := s.db.Query("SELECT id, title, author, category, stock, image_url, published_year, created_at FROM books ORDER BY created_at DESC")
 	if err != nil {
@@ -323,6 +338,7 @@ func (s *MySQLStore) GetAllBooks() ([]models.Book, error) {
 	return books, nil
 }
 
+// GetBookByID mengambil detail buku berdasarkan ID.
 func (s *MySQLStore) GetBookByID(id int) (*models.Book, error) {
 	var b models.Book
 	var imageURL sql.NullString
@@ -340,12 +356,14 @@ func (s *MySQLStore) GetBookByID(id int) (*models.Book, error) {
 	return &b, nil
 }
 
+// UpdateBook memperbarui informasi buku.
 func (s *MySQLStore) UpdateBook(book *models.Book) error {
 	_, err := s.db.Exec("UPDATE books SET title=?, author=?, category=?, stock=?, image_url=?, published_year=? WHERE id=?",
 		book.Title, book.Author, book.Category, book.Stock, book.ImageURL, book.PublishedYear, book.ID)
 	return err
 }
 
+// DeleteBook menghapus buku berdasarkan ID.
 func (s *MySQLStore) DeleteBook(id int) error {
 	_, err := s.db.Exec("DELETE FROM books WHERE id=?", id)
 	return err
@@ -355,15 +373,16 @@ func (s *MySQLStore) DeleteBook(id int) error {
 // LOANS
 // ==========================================
 
+// BorrowBook memproses peminjaman buku (cek stok, kurangi stok, buat record).
 func (s *MySQLStore) BorrowBook(userID string, bookID, duration int) (*models.Loan, error) {
-	// Start transaction
+	// Mulai transaksi database
 	tx, err := s.db.Begin()
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
 
-	// Check stock
+	// Cek ketersediaan stok buku
 	var stock int
 	err = tx.QueryRow("SELECT stock FROM books WHERE id = ?", bookID).Scan(&stock)
 	if err == sql.ErrNoRows {
@@ -376,13 +395,13 @@ func (s *MySQLStore) BorrowBook(userID string, bookID, duration int) (*models.Lo
 		return nil, ErrOutOfStock
 	}
 
-	// Decrement stock
+	// Kurangi stok buku
 	_, err = tx.Exec("UPDATE books SET stock = stock - 1 WHERE id = ?", bookID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create Loan
+	// Buat record peminjaman
 	loanDate := time.Now()
 	dueDate := loanDate.AddDate(0, 0, duration)
 	res, err := tx.Exec("INSERT INTO loans (user_id, book_id, loan_date, due_date, status) VALUES (?, ?, ?, ?, ?)",
@@ -407,6 +426,7 @@ func (s *MySQLStore) BorrowBook(userID string, bookID, duration int) (*models.Lo
 	}, nil
 }
 
+// ReturnBook memproses pengembalian buku (hitung denda, update status, tambah stok).
 func (s *MySQLStore) ReturnBook(loanID int) (*models.Loan, error) {
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -414,7 +434,7 @@ func (s *MySQLStore) ReturnBook(loanID int) (*models.Loan, error) {
 	}
 	defer tx.Rollback()
 
-	// Get Loan
+	// Ambil data peminjaman
 	var l models.Loan
 	var dueDate time.Time
 	err = tx.QueryRow("SELECT id, user_id, book_id, status, due_date FROM loans WHERE id = ?", loanID).
@@ -427,7 +447,7 @@ func (s *MySQLStore) ReturnBook(loanID int) (*models.Loan, error) {
 		return nil, errors.New("book already returned")
 	}
 
-	// Calculate Fine (Dynamic)
+	// Hitung Denda (Dinamis berdasarkan settings)
 	var finePerDay int
 	err = tx.QueryRow("SELECT fine_per_day FROM settings WHERE id=1").Scan(&finePerDay)
 	if err != nil {
@@ -454,14 +474,14 @@ func (s *MySQLStore) ReturnBook(loanID int) (*models.Loan, error) {
 		}
 	}
 
-	// Update Loan
+	// Update data peminjaman
 	_, err = tx.Exec("UPDATE loans SET return_date=?, status=?, fine=? WHERE id=?",
 		returnDate, "returned", fine, loanID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Increment Stock
+	// Tambah stok buku kembali
 	_, err = tx.Exec("UPDATE books SET stock = stock + 1 WHERE id = ?", l.BookID)
 	if err != nil {
 		return nil, err
@@ -471,7 +491,7 @@ func (s *MySQLStore) ReturnBook(loanID int) (*models.Loan, error) {
 		return nil, err
 	}
 
-	// Populate returned struct
+	// Isi struct hasil pengembalian
 	l.Status = "returned"
 	l.Fine = fine
 	l.ReturnDate = &returnDate
@@ -480,6 +500,7 @@ func (s *MySQLStore) ReturnBook(loanID int) (*models.Loan, error) {
 	return &l, nil
 }
 
+// GetAllBorrowedLoans mengambil semua peminjaman yang statusnya masih 'borrowed'.
 func (s *MySQLStore) GetAllBorrowedLoans() ([]models.Loan, error) {
 	rows, err := s.db.Query("SELECT id, user_id, book_id, loan_date, due_date, status FROM loans WHERE status = 'borrowed'")
 	if err != nil {
@@ -502,8 +523,9 @@ func (s *MySQLStore) GetAllBorrowedLoans() ([]models.Loan, error) {
 	return loans, nil
 }
 
+// GetAllLoans mengambil semua riwayat peminjaman (join dengan user dan buku).
 func (s *MySQLStore) GetAllLoans() ([]models.Loan, error) {
-	// Join with books and users for nice display
+	// Join tables untuk tampilan lengkap
 	query := `
 		SELECT l.id, l.user_id, l.book_id, l.loan_date, l.due_date, l.return_date, l.status, l.fine,
 		       b.title, u.username
@@ -542,8 +564,9 @@ func (s *MySQLStore) GetAllLoans() ([]models.Loan, error) {
 	return loans, nil
 }
 
+// GetLoansFiltered mengambil riwayat peminjaman berdasarkan rentang tanggal.
 func (s *MySQLStore) GetLoansFiltered(startDate, endDate time.Time) ([]models.Loan, error) {
-	// Join with books and users for nice display
+	// Join tables untuk tampilan lengkap
 	query := `
 		SELECT l.id, l.user_id, l.book_id, l.loan_date, l.due_date, l.return_date, l.status, l.fine,
 		       b.title, u.username
@@ -583,6 +606,7 @@ func (s *MySQLStore) GetLoansFiltered(startDate, endDate time.Time) ([]models.Lo
 	return loans, nil
 }
 
+// GetLoansByUserID mengambil riwayat peminjaman milik user tertentu.
 func (s *MySQLStore) GetLoansByUserID(userID string) ([]models.Loan, error) {
 	query := `
 		SELECT l.id, l.user_id, l.book_id, l.loan_date, l.due_date, l.return_date, l.status, l.fine,
@@ -622,6 +646,7 @@ func (s *MySQLStore) GetLoansByUserID(userID string) ([]models.Loan, error) {
 	return loans, nil
 }
 
+// GetOverdueLoans mengambil daftar peminjaman yang terlambat dan belum dikembalikan.
 func (s *MySQLStore) GetOverdueLoans(userID string) ([]models.Loan, error) {
 	query := `
 		SELECT l.id, l.book_id, l.due_date, b.title 
@@ -648,6 +673,7 @@ func (s *MySQLStore) GetOverdueLoans(userID string) ([]models.Loan, error) {
 	return loans, nil
 }
 
+// GetNotifications mengambil daftar notifikasi untuk user tertentu.
 func (s *MySQLStore) GetNotifications(userID string) ([]models.Notification, error) {
 	rows, err := s.db.Query("SELECT id, user_id, message, is_read, created_at FROM notifications WHERE user_id = ? ORDER BY created_at DESC", userID)
 	if err != nil {
@@ -666,14 +692,17 @@ func (s *MySQLStore) GetNotifications(userID string) ([]models.Notification, err
 	return notifs, nil
 }
 
+// MarkNotificationRead menandai notifikasi sebagai sudah dibaca.
 func (s *MySQLStore) MarkNotificationRead(id int) error {
 	_, err := s.db.Exec("UPDATE notifications SET is_read = TRUE WHERE id = ?", id)
 	return err
 }
 
+// CreateNotification membuat notifikasi baru.
+// Mencegah duplikasi pesan yang sama untuk user yang sama.
 func (s *MySQLStore) CreateNotification(userID, message string) error {
-	// Deduplicate: Check if same message exists for user (Read OR Unread)
-	// This prevents spamming the same notification (e.g. from workers) if it's already in the list.
+	// Deduplikasi: Cek jika pesan yang sama sudah ada
+	// Ini mencegah spamming notifikasi yang sama (misal dari worker).
 	var count int
 	err := s.db.QueryRow("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND message = ?", userID, message).Scan(&count)
 	if err != nil {
@@ -687,11 +716,13 @@ func (s *MySQLStore) CreateNotification(userID, message string) error {
 	return err
 }
 
+// DeleteNotification menghapus notifikasi.
 func (s *MySQLStore) DeleteNotification(id int) error {
 	_, err := s.db.Exec("DELETE FROM notifications WHERE id = ?", id)
 	return err
 }
 
+// GetSettings mengambil pengaturan aplikasi.
 func (s *MySQLStore) GetSettings() (*models.Settings, error) {
 	var set models.Settings
 	err := s.db.QueryRow("SELECT max_loan_books, loan_duration, fine_per_day FROM settings WHERE id = 1").
@@ -707,11 +738,13 @@ func (s *MySQLStore) GetSettings() (*models.Settings, error) {
 
 // Category Methods
 
+// CreateCategory menambah kategori buku baru.
 func (s *MySQLStore) CreateCategory(name string) error {
 	_, err := s.db.Exec("INSERT INTO categories (name) VALUES (?)", name)
 	return err
 }
 
+// GetAllCategories mengambil semua kategori buku.
 func (s *MySQLStore) GetAllCategories() ([]models.Category, error) {
 	rows, err := s.db.Query("SELECT id, name FROM categories ORDER BY name")
 	if err != nil {
@@ -730,6 +763,7 @@ func (s *MySQLStore) GetAllCategories() ([]models.Category, error) {
 	return categories, nil
 }
 
+// DeleteCategory menghapus kategori.
 func (s *MySQLStore) DeleteCategory(id int) error {
 	_, err := s.db.Exec("DELETE FROM categories WHERE id=?", id)
 	return err
@@ -739,24 +773,28 @@ func (s *MySQLStore) DeleteCategory(id int) error {
 // DASHBOARD STATS
 // ==========================================
 
+// CountUsers menghitung total pengguna terdaftar.
 func (s *MySQLStore) CountUsers() (int, error) {
 	var count int
 	err := s.db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
 	return count, err
 }
 
+// CountBooks menghitung total buku di database.
 func (s *MySQLStore) CountBooks() (int, error) {
 	var count int
 	err := s.db.QueryRow("SELECT COUNT(*) FROM books").Scan(&count)
 	return count, err
 }
 
+// CountTotalActiveLoans menghitung total peminjaman yang masih aktif.
 func (s *MySQLStore) CountTotalActiveLoans() (int, error) {
 	var count int
 	err := s.db.QueryRow("SELECT COUNT(*) FROM loans WHERE status = 'borrowed'").Scan(&count)
 	return count, err
 }
 
+// CountActiveLoansByUser menghitung peminjaman aktif milik user tertentu.
 func (s *MySQLStore) CountActiveLoansByUser(userID string) (int, error) {
 	var count int
 	err := s.db.QueryRow("SELECT COUNT(*) FROM loans WHERE user_id = ? AND status = 'borrowed'", userID).Scan(&count)

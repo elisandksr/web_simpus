@@ -18,9 +18,11 @@ func NewNotificationHandler(store *store.MySQLStore) *NotificationHandler {
 	return &NotificationHandler{Store: store}
 }
 
+// GetNotifications endpoint.
+// Mengambil daftar notifikasi untuk pengguna yang login.
 func (h *NotificationHandler) GetNotifications(w http.ResponseWriter, r *http.Request) {
 	v := r.Context().Value(middleware.UserCtxKey)
-	claims := v.(*utils.Claims) 
+	claims := v.(*utils.Claims)
 
 	user, err := h.Store.GetByUsername(claims.Username)
 	if err != nil {
@@ -38,6 +40,8 @@ func (h *NotificationHandler) GetNotifications(w http.ResponseWriter, r *http.Re
 	json.NewEncoder(w).Encode(notifs)
 }
 
+// MarkRead endpoint.
+// Menandai notifikasi sebagai sudah dibaca.
 func (h *NotificationHandler) MarkRead(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
@@ -51,13 +55,10 @@ func (h *NotificationHandler) MarkRead(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	if err := h.Store.MarkNotificationRead(id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
 }
 
+// DeleteNotification endpoint.
+// Menghapus notifikasi.
 func (h *NotificationHandler) DeleteNotification(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
@@ -73,10 +74,11 @@ func (h *NotificationHandler) DeleteNotification(w http.ResponseWriter, r *http.
 	w.WriteHeader(http.StatusOK)
 }
 
-// SendNotification (Admin Only) - Broadcast or Direct
+// SendNotification endpoint (khusus admin).
+// Mengirim notifikasi ke user tertentu atau semua user (broadcast).
 func (h *NotificationHandler) SendNotification(w http.ResponseWriter, r *http.Request) {
 	var payload struct {
-		UserID  string `json:"user_id"` // "all" for broadcast
+		UserID  string `json:"user_id"` // "all" untuk broadcast
 		Message string `json:"message"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
@@ -90,7 +92,7 @@ func (h *NotificationHandler) SendNotification(w http.ResponseWriter, r *http.Re
 	}
 
 	if payload.UserID == "all" {
-		// Broadcast logic
+		// Logika broadcast
 		users, _ := h.Store.GetAllUsers()
 		for _, u := range users {
 			h.Store.CreateNotification(u.ID, payload.Message)
@@ -103,6 +105,8 @@ func (h *NotificationHandler) SendNotification(w http.ResponseWriter, r *http.Re
 	json.NewEncoder(w).Encode(map[string]string{"message": "Notification sent"})
 }
 
+// ShowNotificationsPage handler.
+// Merender halaman HTML notifikasi.
 func (h *NotificationHandler) ShowNotificationsPage(w http.ResponseWriter, r *http.Request) {
 	v := r.Context().Value(middleware.UserCtxKey)
 	if v == nil {

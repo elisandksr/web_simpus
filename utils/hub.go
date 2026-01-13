@@ -32,6 +32,7 @@ type Message struct {
 	Content string `json:"content"`
 }
 
+// NewHub membuat instance Hub baru untuk mengelola koneksi WebSocket.
 func NewHub() *Hub {
 	return &Hub{
 		Clients:    make(map[string]*Client),
@@ -41,6 +42,7 @@ func NewHub() *Hub {
 	}
 }
 
+// Run menjalankan loop utama Hub untuk memproses register, unregister, dan broadcast pesan.
 func (h *Hub) Run() {
 	for {
 		select {
@@ -77,4 +79,3 @@ var NotificationHub = NewHub()
 func init() {
 	go NotificationHub.Run()
 }
-

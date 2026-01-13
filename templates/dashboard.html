@@ -378,6 +378,8 @@
 </head>
 
 <body>
+    <!-- Sidebar Menu -->
+    <!-- Navigasi samping untuk akses ke berbagai halaman -->
     <nav class="sidebar">
         <div class="sidebar-brand">
             <i class="fas fa-book-reader"></i> SIMPUS
@@ -423,7 +425,10 @@
         </div>
     </nav>
 
+    <!-- Konten Utama -->
     <div class="main-content">
+        <!-- Header Halaman -->
+        <!-- Menampilkan judul halaman dan notifikasi -->
         <header class="header">
             <div class="page-title">
                 <h1>{{.Title}}</h1>
@@ -459,7 +464,8 @@
                         </div>
                     </div>
 
-                    <!-- Stats Grid with Icons -->
+                    <!-- Grid Statistik dengan Ikon -->
+                    <!-- Menampilkan ringkasan data seperti total buku, anggota, peminjaman, dll -->
                     <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:15px; margin-bottom:30px;">
 
                         <!-- Hari Ini -->
@@ -572,12 +578,15 @@
 
     <script>
         // Global Helpers
+        // Mengambil token autentikasi dari cookie
         const token = getCookie('token');
         function getCookie(name) {
             const v = `; ${document.cookie}`;
             const parts = v.split(`; ${name}=`);
             return parts.length === 2 ? parts.pop().split(';').shift() : null;
         }
+
+        // Fungsi Logout: Hapus token dan kembali ke halaman login
         function logout() {
             document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
             window.location.href = '/';

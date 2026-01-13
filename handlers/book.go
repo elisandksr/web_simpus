@@ -21,6 +21,8 @@ func NewBookHandler(store *store.MySQLStore) *BookHandler {
 	return &BookHandler{Store: store}
 }
 
+// GetBooks endpoint.
+// Mengambil daftar buku, bisa dengan filter pencarian.
 func (h *BookHandler) GetBooks(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	var books []models.Book
@@ -43,8 +45,10 @@ func (h *BookHandler) GetBooks(w http.ResponseWriter, r *http.Request) {
 
 // ... existing code ...
 
+// CreateBook endpoint (khusus admin).
+// Menambah buku baru beserta upload gambar sampul.
 func (h *BookHandler) CreateBook(w http.ResponseWriter, r *http.Request) {
-	// Parse Multipart Form
+	// Parse data form multipart (limit 10MB)
 	if err := r.ParseMultipartForm(10 << 20); err != nil { // 10MB limit
 		http.Error(w, "Error parsing form", http.StatusBadRequest)
 		return
@@ -63,23 +67,23 @@ func (h *BookHandler) CreateBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Handle Image Upload
+	// Proses upload gambar jika ada
 	imageURL := ""
 	file, handler, err := r.FormFile("image")
 	if err == nil {
 		defer file.Close()
 
-		// Create unique filename
+		// Buat nama file unik
 		ext := filepath.Ext(handler.Filename)
 		filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
 
-		// Ensure dir exists
+		// Buat folder jika belum ada
 		uploadDir := filepath.Join("upload", "books")
 		os.MkdirAll(uploadDir, os.ModePerm)
 
 		fpath := filepath.Join(uploadDir, filename)
 
-		// Save file
+		// Simpan file ke disk
 		dst, err := os.Create(fpath)
 		if err != nil {
 			http.Error(w, "Error saving file", http.StatusInternalServerError)
@@ -111,6 +115,8 @@ func (h *BookHandler) CreateBook(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(book)
 }
 
+// UpdateBook endpoint (khusus admin).
+// Memperbarui data buku yang ada.
 func (h *BookHandler) UpdateBook(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
@@ -119,20 +125,20 @@ func (h *BookHandler) UpdateBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse Multipart Form
+	// Parse data form multipart
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		http.Error(w, "Error parsing form", http.StatusBadRequest)
 		return
 	}
 
-	// Fetch existing book first to preserve data if needed
+	// Ambil data buku lama
 	book, err := h.Store.GetBookByID(id)
 	if err != nil {
 		http.Error(w, "Book not found", http.StatusNotFound)
 		return
 	}
 
-	// Update fields
+	// Update field jika ada perubahan
 	if title := r.FormValue("title"); title != "" {
 		book.Title = title
 	}
@@ -153,14 +159,14 @@ func (h *BookHandler) UpdateBook(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Handle Image Update
+	// Update gambar jika ada upload baru
 	file, handler, err := r.FormFile("image")
 	if err == nil {
 		defer file.Close()
 		ext := filepath.Ext(handler.Filename)
 		filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
 
-		// Ensure dir exists
+		// Pastikan folder ada
 		uploadDir := filepath.Join("upload", "books")
 		os.MkdirAll(uploadDir, os.ModePerm)
 
@@ -186,6 +192,8 @@ func (h *BookHandler) UpdateBook(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "Book updated"})
 }
 
+// DeleteBook endpoint (khusus admin).
+// Menghapus buku dari database berdasarkan ID.
 func (h *BookHandler) DeleteBook(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)

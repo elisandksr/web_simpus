@@ -486,7 +486,7 @@
                         Laporan</button>
                 </div>
 
-                <!-- Filter -->
+                <!-- Filter Tanggal -->
                 <div
                     style="display:flex; gap:15px; margin-bottom: 20px; align-items:flex-end; background:#f8f9fa; padding:15px; border-radius:10px;">
                     <div style="flex:0 0 200px;">
@@ -507,7 +507,7 @@
                     </div>
                 </div>
 
-                <!-- Stats Summary -->
+                <!-- Ringkasan Statistik -->
                 <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:15px; margin-bottom:30px;">
                     <div style="background:#f8f9fa; padding:15px; border-radius:10px; text-align:center;">
                         <div style="color:var(--text-light); font-size:0.9rem;">Total Peminjaman</div>
@@ -529,7 +529,7 @@
                 </div>
 
                 <!-- Loan List -->
-                <h4>Riwayat Transaksi</h4>
+                    <h4>Riwayat Transaksi</h4>
                 <div style="overflow-x:auto;">
                     <table id="reportTable" style="width:100%; border-collapse:separate; border-spacing:0;">
                         <thead>
@@ -648,6 +648,7 @@
     <script>
         loadReports();
 
+        // Fungsi memuat data laporan (bisa difilter tanggal)
         async function loadReports() {
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
@@ -687,6 +688,7 @@
             `;
             }).join('');
 
+            // Update Ringkasan Statistik
             document.getElementById('totalLoans').innerText = loans.length;
             document.getElementById('totalReturned').innerText = returned;
             document.getElementById('totalFines').innerText = 'Rp ' + fines.toLocaleString();
@@ -705,10 +707,12 @@
             return 'Dipinjam';
         }
 
+        // Fungsi cetak laporan (membuka dialog print browser)
         function printReport() {
             window.print();
         }
 
+        // Fungsi reset filter tanggal
         function resetFilter() {
             document.getElementById('startDate').value = '';
             document.getElementById('endDate').value = '';

@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+// Book merepresentasikan data buku.
 type Book struct {
 	ID            int       `json:"id" db:"id"`
 	Title         string    `json:"title" db:"title"`
@@ -13,6 +14,7 @@ type Book struct {
 	CreatedAt     time.Time `json:"created_at" db:"created_at"`
 }
 
+// BookRequest adalah payload untuk menambah atau mengubah buku.
 type BookRequest struct {
 	Title         string `json:"title"`
 	Author        string `json:"author"`
